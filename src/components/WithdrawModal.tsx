@@ -10,6 +10,7 @@ import { fetchUserBalance } from "@/utils/balance";
 import QRCode from "qrcode";
 import { createPix } from "@/services/pagnow";
 import WithdrawSuccessPopup from "./WithdrawSuccessPopup";
+import { useModal } from "@/hooks/useModal";
 
 type PixType = "cpf" | "telefone" | "email";
 
@@ -29,6 +30,7 @@ type WithdrawModalProps = {
 };
 
 const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDeposit, userId }) => {
+  useModal(open);
   const [balance, setBalance] = useState(0);
   const [pixType, setPixType] = useState<PixType>("cpf");
   const [pixKey, setPixKey] = useState("");
@@ -240,10 +242,11 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
 
   return (
     <>
-      <div className="fixed inset-0 z-[110] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+      <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={handleCloseModal} />
         <div className={cn(
-          "w-full rounded-3xl bg-gradient-to-b from-[#0d0f14] to-[#06070a] border border-[#1c212b] shadow-[0_0_50px_rgba(0,0,0,0.8)] overflow-hidden animate-in fade-in zoom-in-95 duration-200",
-          isMobile ? "max-w-full h-full rounded-none flex flex-col" : "max-w-md"
+          "relative w-full max-h-[90vh] max-h-[90dvh] rounded-3xl bg-gradient-to-b from-[#0d0f14] to-[#06070a] border border-[#1c212b] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200",
+          isMobile ? "max-w-full h-full rounded-none" : "max-w-md"
         )}>
           <div className="flex items-center justify-between bg-[#13161d] px-5 py-4 border-b border-[#1c212b]">
             <div className="flex items-center gap-3">
@@ -486,7 +489,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
                   {pixKey.trim() && (
                     <div className="flex justify-between text-sm">
                       <span className="text-gray-400">Chave PIX</span>
-                      <span className="text-white font-mono text-xs truncate max-w-[180px]">{pixKey.trim()}</span>
+                      <span className="text-white font-mono text-xs truncate max-w-[120px] sm:max-w-[180px]">{pixKey.trim()}</span>
                     </div>
                   )}
                 </div>

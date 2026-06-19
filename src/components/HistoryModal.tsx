@@ -61,8 +61,8 @@ export default function HistoryModal({ open, onClose, userId }: { open: boolean;
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
       <div className={cn(
-        "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col",
-        isMobile ? "max-w-full h-full rounded-none" : "max-w-lg h-[550px]"
+        "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col",
+        isMobile ? "max-w-full h-full rounded-none" : "max-w-lg overflow-hidden h-[550px]"
       )}>
         <div className="flex items-center justify-between bg-[#13161d] px-6 py-4 border-b border-[#1c212b]">
           <div className="flex items-center gap-3">

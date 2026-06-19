@@ -122,10 +122,10 @@ export default function AdminMetaPixels() {
 
   return (
     <div className="bg-[#0d0f14] border border-[#1c212b] rounded-3xl p-6 shadow-xl">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
         <h3 className="text-lg font-black uppercase tracking-wider">Meta Pixels</h3>
         <button onClick={() => { resetForm(); setAdding(true); }}
-          className="flex items-center gap-2 bg-[#ffcc00] text-black font-black px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider hover:bg-[#ffdb4d] transition-all">
+          className="flex items-center justify-center gap-2 bg-[#ffcc00] text-black font-black px-4 py-2.5 rounded-xl text-xs uppercase tracking-wider hover:bg-[#ffdb4d] transition-all w-full sm:w-auto">
           <Plus size={16} /> Adicionar Pixel
         </button>
       </div>
@@ -173,8 +173,8 @@ export default function AdminMetaPixels() {
           <p className="text-gray-600 text-[10px] mt-1">Adicione pixels do Meta/Facebook para tracking.</p>
         </div>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
+        <div className="overflow-x-auto -mx-4 sm:mx-0 px-4 sm:px-0">
+          <table className="w-full text-left min-w-[500px] sm:min-w-0">
             <thead>
               <tr className="border-b border-[#1c212b]">
                 <th className="text-[10px] text-gray-500 font-black uppercase tracking-widest px-3 py-3">Ativo</th>

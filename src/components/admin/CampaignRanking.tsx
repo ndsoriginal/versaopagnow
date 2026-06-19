@@ -186,13 +186,13 @@ export default function CampaignRanking({ metrics: propMetrics, loading: propLoa
           return (
             <div key={camp.name} className={`rounded-2xl border transition-all hover:border-[#ffcc00]/30 ${camp.recommendation === "Pausar" ? "bg-red-500/[0.02] border-red-500/10" : isFirst ? "bg-[#ffcc00]/[0.02] border-[#ffcc00]/15" : "bg-[#13161d] border-[#1c212b]"}`}>
               <div className="p-3 md:p-4 flex flex-col md:flex-row md:items-center gap-3">
-                <div className="flex items-center gap-2.5 min-w-[140px]">
+                <div className="flex items-center gap-2.5 min-w-0 sm:min-w-[140px]">
                   <span className={`w-7 h-7 rounded-xl flex items-center justify-center text-xs font-black shrink-0 ${isFirst ? "bg-[#ffcc00] text-black" : pos === 2 ? "bg-gray-300 text-black" : pos === 3 ? "bg-amber-700 text-white" : "bg-white/5 text-gray-500"}`}>
                     {pos}
                   </span>
                   <span className={`${isFirst ? "text-[#ffcc00]" : "text-white"} font-bold text-xs leading-tight truncate`}>{camp.name}</span>
                 </div>
-                <div className="flex-1 grid grid-cols-4 md:grid-cols-6 gap-2 text-[11px]">
+                <div className="flex-1 grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-2 text-[11px]">
                   <div><span className="text-gray-600 block text-[9px] uppercase font-black">ROAS</span><span className="text-[#ffcc00] font-black">{camp.roas.toFixed(2)}x</span></div>
                   <div><span className="text-gray-600 block text-[9px] uppercase font-black">Gasto</span><span className="text-red-400 font-black">{fmt(camp.investment)}</span></div>
                   <div><span className="text-gray-600 block text-[9px] uppercase font-black">Faturamento</span><span className="text-emerald-400 font-black">{fmt(camp.revenue)}</span></div>

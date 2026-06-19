@@ -32,21 +32,11 @@ export default function AdminBalanceModal({ user, onClose, onSuccess }: Props) {
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch(
-        "https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/admin-manage-balance",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session?.access_token}`,
-          },
-          body: JSON.stringify({ targetUserId: user.id, action, amount, reason: reason || undefined }),
-        }
-      );
+      const { data, error } = await supabase.functions.invoke("admin-manage-balance", {
+        body: { targetUserId: user.id, action, amount, reason: reason || undefined }
+      });
 
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.error || "Erro ao processar");
+      if (error) throw new Error(error.message || "Erro ao processar");
 
       showSuccess(
         action === "add" ? `R$ ${amount.toFixed(2)} adicionado!` :

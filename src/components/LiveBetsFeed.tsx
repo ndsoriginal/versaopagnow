@@ -82,7 +82,42 @@ export default function LiveBetsFeed() {
         <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Atualizado agora</span>
       </div>
 
-      <div className="overflow-x-auto">
+      {/* Mobile: card layout */}
+      <div className="sm:hidden space-y-2">
+        {bets.map((bet) => (
+          <div key={bet.id} className="bg-[#06070a] border border-[#1c212b] rounded-xl p-3 space-y-1.5 animate-in fade-in slide-in-from-top-2 duration-300">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-white">{bet.game}</span>
+              <span className="text-[10px] text-gray-500">{bet.time}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-400 font-mono">{bet.user}</span>
+              <span className="text-[11px] text-gray-300 font-bold">R$ {bet.betAmount.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] text-gray-500">Multiplicador</span>
+              {bet.isWin ? (
+                <span className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded-md font-black text-[10px]">
+                  {bet.multiplier}x
+                </span>
+              ) : (
+                <span className="text-gray-600 font-bold text-[10px]">-</span>
+              )}
+            </div>
+            {bet.isWin && (
+              <div className="flex items-center justify-between pt-1 border-t border-[#1c212b]/30">
+                <span className="text-[10px] text-gray-500">Pagamento</span>
+                <span className="text-emerald-400 font-black text-[11px] flex items-center gap-1">
+                  <Trophy size={10} />
+                  R$ {bet.payout.toFixed(2)}
+                </span>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+      {/* Desktop: table layout */}
+      <div className="hidden sm:block overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="text-gray-500 text-[10px] font-black uppercase tracking-wider border-b border-[#1c212b]/50 pb-2">

@@ -33,8 +33,13 @@ serve(async (req) => {
       })
     }
 
-    const ADMIN_EMAILS = ["admin01@gmail.com", "jhonatas553@gmail.com"]
-    if (!user.email || !ADMIN_EMAILS.includes(user.email.toLowerCase())) {
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", user.id)
+      .maybeSingle();
+
+    if (!adminProfile || !["admin", "superadmin"].includes(adminProfile.role)) {
       return new Response(JSON.stringify({ error: "Apenas admins podem ativar notificações" }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

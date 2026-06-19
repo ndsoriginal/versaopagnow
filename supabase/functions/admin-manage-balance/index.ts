@@ -6,8 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-const ADMIN_EMAILS = ["admin01@gmail.com", "jhonatas553@gmail.com"];
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
 
@@ -22,7 +20,17 @@ serve(async (req) => {
     const { data: authData, error: authError } = await supabase.auth.getUser(token)
     const requester = authData?.user
 
-    if (authError || !requester || !ADMIN_EMAILS.includes(requester.email || '')) {
+    if (authError || !requester) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 403, headers: corsHeaders })
+    }
+
+    const { data: adminProfile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", requester.id)
+      .maybeSingle();
+
+    if (!adminProfile || !["admin", "superadmin"].includes(adminProfile.role)) {
       return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 403, headers: corsHeaders })
     }
 

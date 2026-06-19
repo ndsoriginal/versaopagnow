@@ -2,24 +2,31 @@ import React, { useState, useEffect } from "react";
 import { useSession } from "@/context/SessionContext";
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { 
-  Users, 
-  DollarSign, 
-  QrCode, 
-  PieChart, 
-  Activity, 
-  RefreshCw, 
-  ArrowLeft, 
-  Loader2, 
-  ShieldCheck, 
-  Clock, 
+import {
+  isNotificationSoundEnabled,
+  enableNotificationSound,
+  disableNotificationSound,
+} from "@/utils/notificationSound";
+import {
+  Users,
+  DollarSign,
+  QrCode,
+  PieChart,
+  Activity,
+  RefreshCw,
+  ArrowLeft,
+  Loader2,
+  ShieldCheck,
+  Clock,
   Gift,
   Settings,
   Sparkles,
   TrendingUp,
   ArrowDownUp,
   BarChart3,
-  Bell
+  Bell,
+  Volume2,
+  VolumeX,
 } from "lucide-react";
 import AdminLoginScreen from "@/components/AdminLoginScreen";
 import { showSuccess, showError } from "@/utils/toast";
@@ -36,6 +43,7 @@ import AdminAdsDashboard from "@/components/admin/AdminAdsDashboard";
 import AdminMetaPixels from "@/components/admin/AdminMetaPixels";
 import AdminPaymentGateways from "@/components/admin/AdminPaymentGateways";
 import AdminNotificationsPage from "@/components/admin/AdminNotificationsPage";
+import AdminMobileNav from "@/components/admin/AdminMobileNav";
 
 const ADMIN_EMAILS = ["admin01@gmail.com", "jhonatas553@gmail.com"];
 
@@ -46,8 +54,9 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any>(null);
   const [lastUpdate, setLastUpdate] = useState<string>("");
+  const [soundEnabled, setSoundEnabled] = useState(false);
 
-  const isAdmin = user?.email && (ADMIN_EMAILS.includes(user.email.toLowerCase()) || localStorage.getItem("is_admin") === "true");
+  const isAdmin = user?.email ? ADMIN_EMAILS.includes(user.email.toLowerCase()) : false;
 
   const loadData = async (isSilent = false) => {
     if (!isSilent) setLoading(true);
@@ -62,6 +71,17 @@ export default function AdminPage() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setSoundEnabled(isNotificationSoundEnabled());
+    const prompted = localStorage.getItem("notificationSoundPrompted");
+    if (!prompted) {
+      setTimeout(() => {
+        showSuccess("🔔 Ative o som de notificações em Config → Notificações");
+        localStorage.setItem("notificationSoundPrompted", "true");
+      }, 3000);
+    }
+  }, []);
 
   useEffect(() => {
     if (isAdmin) {
@@ -95,21 +115,6 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-[#06070a] text-white">
-      <div className="lg:hidden fixed top-0 left-0 right-0 z-30 bg-[#0d0f14] border-b border-[#1c212b] overflow-x-auto">
-        <div className="flex gap-1 p-2 min-w-max">
-          {tabs.map((tab) => {
-            const Icon = tab.icon;
-            return (
-              <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-                className={cn("flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all",
-                  activeTab === tab.id ? "bg-[#ffcc00] text-black" : "text-gray-400 hover:text-white")}>
-                <Icon size={16} /> {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       <aside className="fixed left-0 top-0 h-screen w-64 bg-[#0d0f14] border-r border-[#1c212b] hidden lg:flex flex-col p-6 z-20">
         <div className="mb-10 flex items-center gap-3">
           <div className="bg-[#ffcc00] p-2 rounded-xl text-black"><ShieldCheck size={24} /></div>
@@ -130,13 +135,19 @@ export default function AdminPage() {
           })}
         </nav>
 
+        <button onClick={() => { if (soundEnabled) { disableNotificationSound(); setSoundEnabled(false); } else { enableNotificationSound().then(() => setSoundEnabled(true)); } }}
+          className="flex items-center gap-3 px-4 py-3 rounded-2xl text-sm font-bold transition-all w-full mb-2 text-gray-500 hover:text-white hover:bg-[#0d0f14]">
+          {soundEnabled ? <Volume2 size={18} className="text-[#ffcc00]" /> : <VolumeX size={18} className="text-gray-500" />}
+          <span>Som: {soundEnabled ? "Ativado" : "Desativado"}</span>
+        </button>
+
         <button onClick={() => navigate("/")} className="flex items-center gap-3 px-4 py-3 text-gray-500 hover:text-white mt-auto">
           <ArrowLeft size={18} /> <span>Sair</span>
         </button>
       </aside>
 
-      <main className="lg:ml-64 pt-[60px] lg:pt-10 p-6 lg:p-10">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
+      <main className="lg:ml-64 pb-24 md:pb-0 p-4 sm:p-6 lg:p-10 pt-4 md:pt-10">
+        <div className="hidden md:flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-10">
           <div>
             <h1 className="text-3xl font-black uppercase italic">{tabs.find(t => t.id === activeTab)?.label}</h1>
             <p className="text-[10px] text-gray-500 uppercase font-bold mt-1 flex items-center gap-2">
@@ -174,6 +185,7 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+      <AdminMobileNav activeTab={activeTab} onTabChange={setActiveTab} />
     </div>
   );
 }

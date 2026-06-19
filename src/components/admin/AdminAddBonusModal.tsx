@@ -25,24 +25,15 @@ export default function AdminAddBonusModal({ user, onClose, onSuccess }: Props) 
 
     setLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      const response = await fetch("https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/admin-add-bonus", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${session?.access_token}`,
-        },
-        body: JSON.stringify({
+      const { data, error } = await supabase.functions.invoke("admin-add-bonus", {
+        body: {
           targetUserId: user.id,
           amount: val,
           reason: reason
-        })
+        }
       });
 
-      const result = await response.json();
-
-      if (!response.ok) throw new Error(result.error || "Erro ao adicionar bônus");
+      if (error) throw new Error(error.message || "Erro ao adicionar bônus");
 
       showSuccess(`Bônus de R$ ${val.toFixed(2)} adicionado com sucesso!`);
       onSuccess();

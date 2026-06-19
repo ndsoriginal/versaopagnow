@@ -94,8 +94,8 @@ export default function AdminDepositsPage({ refreshData }: Props) {
 
   return (
     <div className="min-h-screen bg-[#06070a] text-white">
-      <main className="mx-auto max-w-[1400px] py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-6">
+      <main className="mx-auto w-full max-w-[1400px] py-6 px-4 sm:px-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[340px_1fr] gap-4 sm:gap-6">
           <aside className="space-y-6">
             {!userFilter ? (
               <>

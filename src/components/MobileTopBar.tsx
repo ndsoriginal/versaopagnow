@@ -77,11 +77,11 @@ const MobileTopBar: React.FC<Props> = ({ onOpenDeposit, onOpenSignup, onOpenLogi
             <>
               <div className="flex items-center gap-2 rounded-lg bg-[#0d0f14] px-3 py-1.5 border border-[#1c212b]">
                 <span className="text-xs font-bold text-white">R$ {balance.toFixed(2)}</span>
-                <button onClick={onOpenDeposit} className="rounded bg-[#ffcc00] p-1 text-[10px] text-black">
-                  <Wallet size={12} />
+                <button onClick={onOpenDeposit} className="flex items-center justify-center rounded bg-[#ffcc00] p-2 text-[10px] text-black min-w-[32px] min-h-[32px]">
+                  <Wallet size={14} />
                 </button>
               </div>
-              <button onClick={onOpenUserMenu} className="text-[#94a3b8] p-1.5">
+              <button onClick={onOpenUserMenu} className="flex items-center justify-center text-[#94a3b8] p-2.5 min-w-[40px] min-h-[40px]">
                 <User size={20} />
               </button>
             </>

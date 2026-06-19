@@ -89,7 +89,7 @@ const RoulettePopup: React.FC<Props> = ({ open, onClose, userId }) => {
 
         <div className="flex flex-col items-center gap-4 flex-1 justify-center"> {/* Adicionado flex-1 justify-center */}
           <div className="relative">
-            <div className="relative h-[320px] w-[320px] sm:h-[360px] sm:w-[360px]">
+            <div className="relative w-full max-w-[320px] sm:h-[360px] sm:w-[360px]" style={{ aspectRatio: '1/1' }}>
               <img
                 ref={wheelRef}
                 src="/roleta/1.png"
@@ -108,7 +108,7 @@ const RoulettePopup: React.FC<Props> = ({ open, onClose, userId }) => {
             <img
               src="/roleta/pin.png"
               alt="pin"
-              className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[86px] sm:top-[104px] w-[92px] sm:w-[110px]"
+              className="pointer-events-none absolute left-1/2 -translate-x-1/2 top-[22%] w-[28%] sm:top-[104px] sm:w-[110px]"
             />
           </div>
 

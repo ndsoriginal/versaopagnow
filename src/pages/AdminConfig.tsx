@@ -20,8 +20,7 @@ const AdminConfig: React.FC = () => {
   const [logFilter, setLogFilter] = useState("all");
 
   const isAdmin = user?.email?.trim().toLowerCase() === "admin01@gmail.com" || 
-                  user?.email?.trim().toLowerCase() === "jhonatas553@gmail.com" || 
-                  localStorage.getItem("is_admin") === "true";
+                  user?.email?.trim().toLowerCase() === "jhonatas553@gmail.com";
 
   useEffect(() => {
     const savedPixelId = localStorage.getItem("meta_pixel_id") || "1569633754739174";
@@ -31,7 +30,7 @@ const AdminConfig: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user && user.email?.trim().toLowerCase() !== "admin01@gmail.com" && user.email?.trim().toLowerCase() !== "jhonatas553@gmail.com" && localStorage.getItem("is_admin") !== "true") {
+    if (user && user.email?.trim().toLowerCase() !== "admin01@gmail.com" && user.email?.trim().toLowerCase() !== "jhonatas553@gmail.com") {
       navigate("/", { replace: true });
     }
   }, [user, navigate]);

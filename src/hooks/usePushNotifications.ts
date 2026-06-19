@@ -58,7 +58,7 @@ export function usePushNotifications() {
       const registration = await navigator.serviceWorker.ready
       let pushSub = await registration.pushManager.getSubscription()
       if (!pushSub) {
-        const vapidPublicKey = 'BMGfWlgp6tXVNxaoTexWKhy7OhtXDnkxgs43WCK48-RldqbZBEyuTSOoPqHpQY2gzarJmWG9nHtzBkrjh9yinMA'
+        const vapidPublicKey = 'BCOh8isI_gns2v_srFelqeWmW56TdruL8oHo6BRC3RxV-mTuyNXJJYvLPGGvo7GsQnQfBb-ij8VVpqo_729oQH8'
         pushSub = await registration.pushManager.subscribe({
           userVisibleOnly: true,
           applicationServerKey: vapidPublicKey,

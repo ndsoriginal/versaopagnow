@@ -16,16 +16,14 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    // 1. Validar Usuário
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) throw new Error("Cabeçalho de autorização ausente")
-    
+
     const token = authHeader.replace('Bearer ', '')
-    const { data: authData, error: userError } = await supabase.auth.getUser(token)
-    const user = authData?.user
+    const { data: { user }, error: userError } = await supabase.auth.getUser(token)
 
     if (userError || !user) {
-      return new Response(JSON.stringify({ error: "Usuário não autenticado no Supabase" }), {
+      return new Response(JSON.stringify({ error: "Usuário não autenticado" }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
@@ -36,7 +34,6 @@ serve(async (req) => {
     const targetAmount = Number(amount)
     const isFee = pixType === 'withdraw_fee'
 
-    // Se CPF não veio na requisição, busca do perfil
     if (!doc || doc.length !== 11) {
       const { data: profileData } = await supabase
         .from('profiles')
@@ -56,7 +53,6 @@ serve(async (req) => {
       })
     }
 
-    // 2. Salvar/atualizar CPF no perfil do usuário
     const { data: profileData } = await supabase
       .from('profiles')
       .select('cpf')
@@ -64,13 +60,9 @@ serve(async (req) => {
       .maybeSingle()
 
     if (!profileData?.cpf || profileData.cpf !== doc) {
-      await supabase
-        .from('profiles')
-        .update({ cpf: doc })
-        .eq('id', user.id)
+      await supabase.from('profiles').update({ cpf: doc }).eq('id', user.id)
     }
 
-    // 3. Verificar se já existe cobrança pendente com mesmo valor
     const { data: existing } = await supabase
       .from('pix_requests')
       .select('*')
@@ -95,99 +87,180 @@ serve(async (req) => {
       })
     }
 
-    // 4. Buscar Perfil
     const { data: profile } = await supabase
       .from('profiles')
       .select('first_name, phone')
       .eq('id', user.id)
       .maybeSingle()
 
-    // 5. Configurações PagNow
-    const PAGNOW_API_KEY = Deno.env.get("PAGNOW_API_KEY")
-    const PAGNOW_WEBHOOK_URL = Deno.env.get("PAGNOW_WEBHOOK_URL") || ""
-    const pagnowUrl = "https://v2.pagnow.com/v1/payments"
+    const { data: gateways } = await supabase
+      .from('payment_gateways')
+      .select('*')
+      .eq('is_active', true)
+      .limit(1)
 
-    if (!PAGNOW_API_KEY) {
-      return new Response(JSON.stringify({ error: "ERRO: PAGNOW_API_KEY não configurada nos Secrets do Supabase" }), {
+    const activeGateway = gateways?.[0]
+
+    if (!activeGateway) {
+      return new Response(JSON.stringify({ error: "Nenhum gateway de pagamento ativo. Configure em Admin > Gateways." }), {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    const minAmount = isFee ? 0 : 500
-    const amountInCents = Math.max(Math.round(targetAmount * 100), minAmount)
+    const config = typeof activeGateway.config === 'string' ? JSON.parse(activeGateway.config) : activeGateway.config
+    const now = new Date().toISOString()
+    let responseData: Record<string, any> = {}
 
-    // 6. Montar payload conforme documentação v2
-    const idempotencyKey = `${isFee ? 'FEE' : 'DEP'}-${user.id.slice(0, 8)}-${Date.now()}`
-    const payload = {
-      amount: amountInCents,
-      currency: "BRL",
-      paymentMethods: ["PIX"],
-      idempotencyKey,
-      customerName: profile?.first_name || user.email?.split('@')[0] || "Cliente",
-      customerDocument: doc,
-      customerEmail: user.email,
-      metadata: {
-        userId: user.id,
-        type: pixType || 'deposit',
-        ...(withdrawRequestId ? { withdrawRequestId } : {}),
-      },
-      ...(PAGNOW_WEBHOOK_URL ? { webhookUrl: PAGNOW_WEBHOOK_URL } : {})
-    }
+    if (activeGateway.slug === 'pagnow') {
+      const apiKey = config.api_key || Deno.env.get("PAGNOW_API_KEY")
+      const webhookUrl = config.webhook_url || Deno.env.get("PAGNOW_WEBHOOK_URL") || ""
 
-    console.log("[create-pix] Enviando payload para PagNow v2:", JSON.stringify(payload))
+      if (!apiKey) {
+        return new Response(JSON.stringify({ error: "PagNow: API key não configurada" }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
 
-    // 7. Chamada API PagNow v2
-    const response = await fetch(pagnowUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': PAGNOW_API_KEY,
-      },
-      body: JSON.stringify(payload),
-    })
+      const minAmount = isFee ? 0 : 500
+      const amountInCents = Math.max(Math.round(targetAmount * 100), minAmount)
+      const idempotencyKey = `${isFee ? 'FEE' : 'DEP'}-${user.id.slice(0, 8)}-${Date.now()}`
+      const pagnowPayload = {
+        amount: amountInCents,
+        currency: "BRL",
+        paymentMethods: ["PIX"],
+        idempotencyKey,
+        customerName: profile?.first_name || user.email?.split('@')[0] || "Cliente",
+        customerDocument: doc,
+        customerEmail: user.email,
+        metadata: {
+          userId: user.id,
+          type: pixType || 'deposit',
+          ...(withdrawRequestId ? { withdrawRequestId } : {}),
+        },
+        ...(webhookUrl ? { webhookUrl } : {})
+      }
 
-    const responseText = await response.text()
-    
-    if (!response.ok) {
-      console.error("[create-pix] Erro na PagNow:", response.status, responseText)
-      return new Response(JSON.stringify({ 
-        error: "A PagNow recusou a requisição", 
-        status: response.status,
-        details: responseText 
-      }), {
-        status: response.status,
+      console.log("[create-pix] Enviando para PagNow:", JSON.stringify(pagnowPayload))
+
+      const pagnowResp = await fetch("https://v2.pagnow.com/v1/payments", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': apiKey,
+        },
+        body: JSON.stringify(pagnowPayload),
+      })
+
+      const pagnowText = await pagnowResp.text()
+
+      if (!pagnowResp.ok) {
+        console.error("[create-pix] Erro PagNow:", pagnowResp.status, pagnowText)
+        return new Response(JSON.stringify({
+          error: "PagNow recusou a requisição",
+          status: pagnowResp.status,
+          details: pagnowText
+        }), {
+          status: pagnowResp.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const pagnowData = JSON.parse(pagnowText)
+      responseData = {
+        id: pagnowData.transactionId || pagnowData.id,
+        pixCopyPaste: pagnowData.pixCopyPaste || "",
+        pixQrCode: pagnowData.pixQrCode || "",
+      }
+
+    } else if (activeGateway.slug === 'pagoupay') {
+      const pk = config.public_key || ""
+      const sk = config.secret_key || ""
+
+      if (!pk || !sk) {
+        return new Response(JSON.stringify({ error: "PagouPay: chaves não configuradas" }), {
+          status: 500,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const amountInCents = Math.max(Math.round(targetAmount * 100), 1)
+      const idempotencyKey = crypto.randomUUID()
+
+      const pagoupayPayload = {
+        amountCents: amountInCents,
+        customer: {
+          name: profile?.first_name || user.email?.split('@')[0] || "Cliente",
+          document: doc,
+        },
+        idempotencyKey,
+      }
+
+      console.log("[create-pix] Enviando para PagouPay:", JSON.stringify(pagoupayPayload))
+
+      const pagoupayResp = await fetch("https://pagoupay.com/api/v1/pix/create", {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${pk}:${sk}`,
+        },
+        body: JSON.stringify(pagoupayPayload),
+      })
+
+      const pagoupayText = await pagoupayResp.text()
+
+      if (!pagoupayResp.ok) {
+        console.error("[create-pix] Erro PagouPay:", pagoupayResp.status, pagoupayText)
+        return new Response(JSON.stringify({
+          error: "PagouPay recusou a requisição",
+          status: pagoupayResp.status,
+          details: pagoupayText
+        }), {
+          status: pagoupayResp.status,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+
+      const pagoupayData = JSON.parse(pagoupayText)
+      const pd = pagoupayData.data || pagoupayData
+      const chargeId = pd.id || pd.chargeId || pd.transactionId || idempotencyKey
+      responseData = {
+        id: chargeId,
+        pixCopyPaste: pd.pixCopyPaste || pd.copyPaste || pd.pixCode || pd.qrCode || "",
+        pixQrCode: pd.qrCodeImage || pd.qrCodeUrl || pd.qrCode || "",
+      }
+
+    } else {
+      return new Response(JSON.stringify({ error: `Gateway "${activeGateway.slug}" não suportado` }), {
+        status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })
     }
 
-    const data = JSON.parse(responseText)
-    const now = new Date().toISOString()
-
-    // 8. Salvar na tabela transactions
-    const pagnowTxId = data.transactionId || data.id
+    const gatewaySlug = activeGateway.slug
     const { error: txError } = await supabase.from("transactions").insert({
-      id: pagnowTxId,
+      id: responseData.id,
       user_id: user.id,
       amount: targetAmount,
       type: isFee ? "withdraw_fee" : "deposit",
       status: "pending",
-      pix_code: data.pixCopyPaste || "",
+      pix_code: responseData.pixCopyPaste || "",
+      gateway: gatewaySlug,
       created_at: now
     })
 
     if (txError) console.error("[create-pix] Erro ao salvar em transactions:", txError)
 
-    // 9. Salvar na tabela pix_requests
-    const qrCode = data.pixQrCode || ""
     const { error: prError } = await supabase.from("pix_requests").insert({
       user_id: user.id,
       cpf: doc,
       amount: targetAmount,
-      transaction_id: pagnowTxId,
-      qr_code: qrCode,
-      pix_code: data.pixCopyPaste || "",
+      transaction_id: responseData.id,
+      qr_code: responseData.pixQrCode || "",
+      pix_code: responseData.pixCopyPaste || "",
       status: "pending",
+      gateway: gatewaySlug,
       created_at: now,
       updated_at: now
     })
@@ -199,7 +272,7 @@ serve(async (req) => {
         user_id: user.id,
         amount: withdrawRequestId ? 0 : targetAmount,
         status: "pending_payment",
-        fee_transaction_id: pagnowTxId,
+        fee_transaction_id: responseData.id,
         created_at: now,
         updated_at: now
       })
@@ -208,8 +281,9 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       fromCache: false,
-      ...data,
+      ...responseData,
       amount: targetAmount,
+      gateway: gatewaySlug,
       created_at: now,
       isFee
     }), {

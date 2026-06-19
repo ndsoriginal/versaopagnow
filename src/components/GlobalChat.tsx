@@ -473,11 +473,11 @@ export default function GlobalChat({ isOpen, onClose }: { isOpen: boolean; onClo
 
       <div
         className={cn(
-          "fixed right-0 top-0 z-[60] h-screen w-[85%] sm:w-[360px] max-w-[360px] bg-[#06070a] border-l border-[#1c212b] flex flex-col shadow-[-10px_0_25px_rgba(0,0,0,0.6)]",
+          "fixed right-0 top-0 z-[60] w-[85%] sm:w-[360px] max-w-[360px] bg-[#06070a] border-l border-[#1c212b] flex flex-col shadow-[-10px_0_25px_rgba(0,0,0,0.6)]",
           isOpen ? "translate-x-0" : "translate-x-full",
           !isDragging && "transition-transform duration-300"
         )}
-        style={{ transform: isDragging && isMobile ? `translateX(${dragOffset}px)` : undefined }}
+        style={{ height: '100dvh', transform: isDragging && isMobile ? `translateX(${dragOffset}px)` : undefined }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}

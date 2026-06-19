@@ -66,7 +66,7 @@ function AdminOverviewContent({ data }: { data: any }) {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Saldo Fictício Total</span>
-              <div className="text-3xl font-black text-amber-500 mt-1">R$ {(overview?.totalBugAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              <div className="text-2xl sm:text-3xl font-black text-amber-500 mt-1 break-all sm:break-normal">R$ {(overview?.totalBugAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
               <p className="text-[10px] text-gray-500 mt-2 font-medium">Soma de todos os bônus de R$ 300,00 creditados via bug.</p>
             </div>
             <div className="bg-amber-500/10 p-4 rounded-2xl text-amber-500">
@@ -83,7 +83,7 @@ function AdminOverviewContent({ data }: { data: any }) {
           <div className="flex items-center justify-between">
             <div>
               <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Aguardando Pagamento</span>
-              <div className="text-3xl font-black text-white mt-1">R$ {(overview?.pendingAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
+              <div className="text-2xl sm:text-3xl font-black text-white mt-1 break-all sm:break-normal">R$ {(overview?.pendingAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</div>
               <p className="text-[10px] text-gray-500 mt-2 font-medium">Dinheiro real que os clientes geraram PIX mas não pagaram.</p>
             </div>
             <div className="bg-blue-500/10 p-4 rounded-2xl text-blue-500">

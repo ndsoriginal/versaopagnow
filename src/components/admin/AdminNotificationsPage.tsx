@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { Bell, BellOff, Loader2, Check, X } from "lucide-react";
+import { Bell, BellOff, Loader2, Check, X, Volume2, VolumeX, Music } from "lucide-react";
 import { showSuccess, showError } from "@/utils/toast";
 import { usePushNotifications, NotifType } from "@/hooks/usePushNotifications";
 import { playSound, NOTIFICATION_INFO } from "@/hooks/useNotificationSound";
+import {
+  isNotificationSoundEnabled,
+  enableNotificationSound,
+  disableNotificationSound,
+  playNotificationSound,
+} from "@/utils/notificationSound";
 
 export default function AdminNotificationsPage() {
   const {
@@ -12,6 +18,30 @@ export default function AdminNotificationsPage() {
   } = usePushNotifications();
 
   const [testing, setTesting] = useState<NotifType | null>(null);
+  const [mp3Enabled, setMp3Enabled] = useState(isNotificationSoundEnabled());
+  const [testingMp3, setTestingMp3] = useState(false);
+
+  useEffect(() => {
+    setMp3Enabled(isNotificationSoundEnabled());
+  }, []);
+
+  const handleToggleMp3 = async () => {
+    if (mp3Enabled) {
+      disableNotificationSound();
+      setMp3Enabled(false);
+      showSuccess('Som de notificação desativado.');
+    } else {
+      await enableNotificationSound();
+      setMp3Enabled(true);
+      showSuccess('Som de notificação ativado com sucesso!');
+    }
+  };
+
+  const handleTestMp3 = async () => {
+    setTestingMp3(true);
+    await playNotificationSound();
+    setTimeout(() => setTestingMp3(false), 1000);
+  };
 
   const handleEnable = async () => {
     try {
@@ -104,6 +134,50 @@ export default function AdminNotificationsPage() {
             Desativar Notificações
           </button>
         )}
+      </div>
+
+      <div className="bg-[#0d0f14] border border-[#1c212b] rounded-3xl p-6">
+        <h3 className="text-lg font-black uppercase tracking-wider mb-4 flex items-center gap-2">
+          <Volume2 size={20} className="text-[#ffcc00]" /> Som de Notificação MP3
+        </h3>
+
+        <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
+          <div className="flex items-center gap-3">
+            <div className={`w-3 h-3 rounded-full ${mp3Enabled ? 'bg-green-500' : 'bg-gray-600'}`} />
+            <span className="text-sm font-bold uppercase tracking-wider">
+              {mp3Enabled ? 'Ativado' : 'Desativado'}
+            </span>
+          </div>
+          <span className="text-xs text-gray-500">
+            Toca /sounds/notification.mp3 ao receber novas notificações
+          </span>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            onClick={handleToggleMp3}
+            className={`flex items-center gap-2 px-6 py-3 rounded-2xl text-sm font-black uppercase tracking-wider transition-all ${
+              mp3Enabled
+                ? 'bg-red-600/20 text-red-400 border border-red-600/30 hover:bg-red-600/30'
+                : 'bg-[#ffcc00] text-black hover:bg-[#e6b800]'
+            }`}
+          >
+            {mp3Enabled ? <VolumeX size={16} /> : <Volume2 size={16} />}
+            {mp3Enabled ? 'Desativar Som' : 'Ativar Som'}
+          </button>
+          <button
+            onClick={handleTestMp3}
+            disabled={testingMp3}
+            className="flex items-center gap-2 bg-[#13161d] border border-[#1c212b] px-6 py-3 rounded-2xl text-sm font-bold hover:bg-[#1c212b] transition-all disabled:opacity-50"
+          >
+            {testingMp3 ? <Loader2 size={16} className="animate-spin" /> : <Music size={16} className="text-[#ffcc00]" />}
+            Testar Som MP3
+          </button>
+        </div>
+        <p className="text-[10px] text-gray-600 mt-4 leading-relaxed">
+          O navegador pode bloquear o áudio até que você interaja com a página.
+          Clique em "Ativar Som" para liberar. A preferência fica salva no navegador.
+        </p>
       </div>
 
       <div className="bg-[#0d0f14] border border-[#1c212b] rounded-3xl p-6">

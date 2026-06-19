@@ -72,17 +72,17 @@ export default function PeriodFilterBar({ dailySpend }: Props) {
           ))}
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <span className="text-gray-600 text-[10px] font-bold">ou</span>
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className="text-gray-600 text-[10px] font-bold shrink-0">ou</span>
           <input type="date" value={dateStart} onChange={e => setDateStart(e.target.value)}
-            className="bg-[#13161d] border border-[#1c212b] rounded-xl px-2.5 py-2 text-[11px] text-white focus:outline-none focus:border-[#ffcc00] w-[120px]" />
-          <span className="text-gray-500 text-xs">a</span>
+            className="bg-[#13161d] border border-[#1c212b] rounded-xl px-2.5 py-2 text-[11px] text-white focus:outline-none focus:border-[#ffcc00] w-full sm:w-[120px] min-w-0" />
+          <span className="text-gray-500 text-xs shrink-0">a</span>
           <input type="date" value={dateEnd} onChange={e => setDateEnd(e.target.value)}
-            className="bg-[#13161d] border border-[#1c212b] rounded-xl px-2.5 py-2 text-[11px] text-white focus:outline-none focus:border-[#ffcc00] w-[120px]" />
+            className="bg-[#13161d] border border-[#1c212b] rounded-xl px-2.5 py-2 text-[11px] text-white focus:outline-none focus:border-[#ffcc00] w-full sm:w-[120px] min-w-0" />
         </div>
 
         {periodSpend !== null && (
-          <div className="flex items-center gap-2 ml-auto shrink-0 bg-[#13161d] border border-[#1c212b] rounded-xl px-4 py-2">
+          <div className="flex items-center gap-2 sm:ml-auto shrink-0 bg-[#13161d] border border-[#1c212b] rounded-xl px-4 py-2">
             <DollarSign size={14} className="text-purple-400" />
             <div>
               <span className="text-[9px] text-gray-500 font-black uppercase tracking-widest block">Gasto no período</span>

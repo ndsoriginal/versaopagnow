@@ -32,7 +32,7 @@ const AdminAnalytics: React.FC<Props> = ({ charts, rankings, peaks }) => {
                 <div className="flex items-center gap-4">
                   <span className="text-xs font-black text-gray-500 w-4">#{idx + 1}</span>
                   <div>
-                    <div className="text-sm font-bold text-white truncate max-w-[180px]">{u.email}</div>
+                    <div className="text-sm font-bold text-white truncate max-w-[120px] sm:max-w-[180px]">{u.email}</div>
                     <div className="text-[10px] text-gray-500 font-bold uppercase">{u.deposit_count} depósitos</div>
                   </div>
                 </div>

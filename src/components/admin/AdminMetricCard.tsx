@@ -35,7 +35,7 @@ const AdminMetricCard: React.FC<Props> = ({ title, value, subtitle, icon: Icon, 
       </div>
       <div>
         <span className="text-[10px] text-gray-500 font-black uppercase tracking-widest block">{title}</span>
-        <div className="text-2xl font-black text-white tracking-tight mt-1">{value}</div>
+        <div className="text-xl sm:text-2xl font-black text-white tracking-tight mt-1 break-words">{value}</div>
         {subtitle && <p className="text-[10px] text-gray-400 font-medium mt-1 uppercase">{subtitle}</p>}
       </div>
     </div>

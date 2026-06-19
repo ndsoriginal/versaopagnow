@@ -28,8 +28,6 @@ export async function adminLogin(email: string, password: string): Promise<void>
       role,
       updated_at: new Date().toISOString()
     });
-
-    localStorage.setItem("is_admin", "true");
   } catch (err: any) {
     throw err;
   }

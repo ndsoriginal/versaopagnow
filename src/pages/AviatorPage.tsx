@@ -609,9 +609,9 @@ export default function AviatorPage() {
 
                 {gameState === "FLYING" && (
                   <div className="space-y-1">
-                    <div className={cn("text-7xl sm:text-8xl font-black tracking-tight transition-all duration-300 flex items-baseline justify-center", theme.text, theme.glow)}>
+                    <div className={cn("text-5xl sm:text-7xl sm:text-8xl font-black tracking-tight transition-all duration-300 flex items-baseline justify-center", theme.text, theme.glow)}>
                       <span>{integerPart}</span>
-                      <span className="text-4xl sm:text-5xl font-bold">{decimalPart}x</span>
+                      <span className="text-2xl sm:text-4xl sm:text-5xl font-bold">{decimalPart}x</span>
                     </div>
                   </div>
                 )}

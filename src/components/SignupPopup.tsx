@@ -7,6 +7,7 @@ import { showSuccess, showError } from "@/utils/toast";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { trackRegistration } from "@/utils/metaPixel";
+import { useModal } from "@/hooks/useModal";
 
 type Props = {
   open: boolean;
@@ -14,6 +15,7 @@ type Props = {
 };
 
 const SignupPopup: React.FC<Props> = ({ open, onClose }) => {
+  useModal(open);
   const [name, setName] = React.useState("");
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
@@ -97,32 +99,23 @@ const SignupPopup: React.FC<Props> = ({ open, onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 p-4">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" onClick={onClose} />
       <div className={cn(
-        "w-full rounded-2xl bg-gradient-to-b from-[#0d0f14] to-[#06070a] border border-[#1c212b] shadow-2xl overflow-hidden",
-        isMobile ? "max-w-full h-full rounded-none" : "max-w-lg"
+        "relative w-full max-w-lg max-h-[90vh] max-h-[90dvh] rounded-2xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200"
       )}>
-        <div className="w-full">
-          <img
-            src="/login.png"
-            alt="Promo"
-            className="w-full h-48 object-cover"
-            draggable={false}
-          />
+        <div className="flex items-center justify-between p-6 border-b border-[#1c212b]">
+          <div>
+            <h2 className="text-xl font-bold text-white">Criar conta</h2>
+            <p className="text-sm text-[#9CA3AF] mt-1">Preencha o formulário abaixo.</p>
+          </div>
+          <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
+            <X />
+          </button>
         </div>
 
-        <div className="p-6">
-          <div className="flex items-start justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-white">Criar conta</h2>
-              <p className="text-sm text-[#9CA3AF] mt-1">Preencha o formulário abaixo para criar sua conta.</p>
-            </div>
-            <button onClick={onClose} className="text-gray-400 hover:text-white p-1">
-              <X />
-            </button>
-          </div>
-
-          <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="p-6 flex-1 overflow-y-auto">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="text-xs text-[#9CA3AF]">Nome completo</label>
               <input

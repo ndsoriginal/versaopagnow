@@ -1,7 +1,7 @@
 -- ============================================================
 -- NOVOPIXVB - Configuração Completa do Supabase
 -- Execute todo este SQL no SQL Editor do Supabase Dashboard
--- (https://supabase.com/dashboard/project/rkkmtdpgrvtbotvypysq)
+-- (https://supabase.com/dashboard/project/nxilunpuywulvjoojeel)
 -- ============================================================
 
 -- 1. TABELA users (saldo principal dos usuários)
@@ -151,7 +151,7 @@ $$;
 --
 -- Adicionar manualmente:
 -- PAGNOW_API_KEY=...
--- PAGNOW_WEBHOOK_URL=https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/pagnow-webhook
+-- PAGNOW_WEBHOOK_URL=https://nxilunpuywulvjoojeel.supabase.co/functions/v1/pagnow-webhook
 -- PAGNOW_WEBHOOK_SECRET=...
 
 -- ============================================================

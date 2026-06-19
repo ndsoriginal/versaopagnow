@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { playNotificationSound } from "@/utils/notificationSound";
 
 type NotificationData = {
   title: string;
@@ -23,6 +24,7 @@ export default function MobileNotification() {
       const customEvent = e as CustomEvent<NotificationData>;
       setNotification(customEvent.detail);
       setVisible(true);
+      playNotificationSound();
 
       // Tenta vibrar o celular se o navegador suportar (padrão de notificação recebida)
       if ("vibrate" in navigator) {

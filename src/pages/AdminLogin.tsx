@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { showError } from "@/utils/toast";
 import { LogIn, Eye, EyeOff } from "lucide-react";
 import { adminLogin } from "@/lib/adminLogin";
+import { supabase } from "@/lib/supabase";
 
 const AdminLogin: React.FC = () => {
   const [email, setEmail] = useState("");
@@ -15,12 +16,7 @@ const AdminLogin: React.FC = () => {
 
   useEffect(() => {
     // Executa silenciosamente o auto-reparo do administrador master ao carregar a página
-    fetch("https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/sync-auth-users", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      }
-    }).catch(err => console.warn("Auto-reparo silencioso falhou:", err));
+    supabase.functions.invoke("sync-auth-users").catch(err => console.warn("Auto-reparo silencioso falhou:", err));
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

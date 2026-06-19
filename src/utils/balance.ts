@@ -28,22 +28,14 @@ export const fetchUserBalance = async (userId: string): Promise<number> => {
       return dbBal;
     }
 
-    // Se falhou por permissão, tenta via Edge Function de fallback
-    const response = await fetch("https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/get-user-balance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId })
+    const { data: balanceData, error: balanceError } = await supabase.functions.invoke("get-user-balance", {
+      body: { userId }
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success) {
-        const dbBal = Number(result.balance || 0);
-        setLocalBalance(userId, dbBal);
-        return dbBal;
-      }
+    if (!balanceError && balanceData?.success) {
+      const dbBal = Number(balanceData.balance || 0);
+      setLocalBalance(userId, dbBal);
+      return dbBal;
     }
   } catch (err) {
     console.warn("[Balance System] Erro ao sincronizar saldo:", err);
@@ -61,19 +53,11 @@ export const updateUserBalance = async (userId: string, newBalance: number): Pro
 
     if (!error) return true;
 
-    // Fallback via Edge Function
-    const response = await fetch("https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/update-user-balance", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ userId, balance: newBalance })
+    const { data: updateData, error: updateError } = await supabase.functions.invoke("update-user-balance", {
+      body: { userId, balance: newBalance }
     });
 
-    if (response.ok) {
-      const result = await response.json();
-      return result.success;
-    }
+    if (!updateError && updateData?.success) return true;
   } catch (err) {
     console.error("[Balance System] Erro ao atualizar saldo:", err);
   }

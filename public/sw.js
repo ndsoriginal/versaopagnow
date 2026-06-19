@@ -11,7 +11,7 @@ const { ExpirationPlugin } = workbox.expiration
 precacheAndRoute(self.__WB_MANIFEST)
 
 registerRoute(
-  /^https:\/\/rkkmtdpgrvtbotvypysq\.supabase\.co\/.*/i,
+  /^https:\/\/nxilunpuywulvjoojeel\.supabase\.co\/.*/i,
   new NetworkFirst({
     cacheName: 'supabase-cache',
     plugins: [

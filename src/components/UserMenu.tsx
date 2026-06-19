@@ -7,6 +7,7 @@ import { useSession } from "@/context/SessionContext";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
 import FlagSwitcher from "./FlagSwitcher";
+import { useModal } from "@/hooks/useModal";
 
 type UserMenuProps = {
   open: boolean;
@@ -32,6 +33,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
   const { user } = useSession();
   const isMobile = useIsMobile();
   const [showFlagSwitcher, setShowFlagSwitcher] = React.useState(false);
+
+  useModal(open || showFlagSwitcher);
 
   if (!open) return null;
 
@@ -77,7 +80,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
     <>
       <div
         className={cn(
-          "fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-transform duration-300",
+          "fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-transform duration-300",
           isMobile ? "top-0 left-0 w-full h-full" : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
           open ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
         )}
@@ -85,8 +88,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
       >
         <div
           className={cn(
-            "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200",
-            isMobile ? "max-w-full h-full rounded-none" : "max-w-md"
+            "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col",
+            isMobile ? "max-w-full h-full rounded-none" : "max-w-md overflow-hidden"
           )}
           onClick={(e) => e.stopPropagation()}
         >
@@ -102,7 +105,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
             </button>
           </div>
 
-          <div className="p-6 space-y-4">
+          <div className="p-6 space-y-4 overflow-y-auto flex-1">
             {menuItems.map((item) => {
               const Icon = item.icon;
               return (
@@ -130,7 +133,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
       {showFlagSwitcher && (
         <div
           className={cn(
-            "fixed inset-0 z-[110] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-transform duration-300",
+            "fixed inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 transition-transform duration-300",
             isMobile ? "top-0 left-0 w-full h-full" : "top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2",
             showFlagSwitcher ? "scale-100 opacity-100" : "scale-95 opacity-0 pointer-events-none"
           )}
@@ -138,8 +141,8 @@ const UserMenu: React.FC<UserMenuProps> = ({
         >
           <div
             className={cn(
-              "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200",
-              isMobile ? "max-w-full h-full rounded-none" : "max-w-xl"
+              "w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col",
+              isMobile ? "max-w-full h-full rounded-none" : "max-w-xl overflow-hidden"
             )}
             onClick={(e) => e.stopPropagation()}
           >
@@ -154,7 +157,7 @@ const UserMenu: React.FC<UserMenuProps> = ({
                 <X size={24} />
               </button>
             </div>
-            <div className="p-6">
+            <div className="p-6 overflow-y-auto flex-1">
               <FlagSwitcher onFlagSelected={handleCloseFlagSwitcher} />
             </div>
           </div>

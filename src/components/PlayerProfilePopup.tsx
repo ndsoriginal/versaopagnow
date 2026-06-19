@@ -6,6 +6,8 @@ import { supabase } from "@/lib/supabase";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { showSuccess, showError } from "@/utils/toast";
 import { fetchUserBalance } from "@/utils/balance";
+import { cn } from "@/lib/utils";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type ProfileData = {
   id: string;
@@ -16,6 +18,7 @@ type ProfileData = {
 };
 
 export default function PlayerProfilePopup({ open, onClose, profile: initialProfile, onOpenWithdraw }: { open: boolean; onClose: () => void; profile: any; onOpenWithdraw: () => void }) {
+  const isMobile = useIsMobile();
   const [loading, setLoading] = React.useState(false);
   const [data, setData] = React.useState<ProfileData>({
     id: initialProfile.id,
@@ -71,7 +74,7 @@ export default function PlayerProfilePopup({ open, onClose, profile: initialProf
 
   return (
     <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
-      <div className="w-full max-w-2xl rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+      <div className={cn("w-full rounded-3xl bg-[#0d0f14] border border-[#1c212b] shadow-2xl animate-in zoom-in-95 duration-200 flex flex-col", isMobile ? "max-w-full h-full rounded-none" : "max-w-2xl overflow-hidden")}>
 
         <div className="flex items-center justify-between bg-[#13161d] px-6 py-4 border-b border-[#1c212b]">
           <div className="flex items-center gap-3">
@@ -85,22 +88,22 @@ export default function PlayerProfilePopup({ open, onClose, profile: initialProf
           </button>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6 overflow-y-auto flex-1">
           <Tabs defaultValue="perfil" className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-[#06070a] border border-[#1c212b] rounded-xl h-12 p-1">
-              <TabsTrigger value="perfil" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00]">
-                <User size={16} className="mr-2" /> Geral
+            <TabsList className="grid w-full grid-cols-3 bg-[#06070a] border border-[#1c212b] rounded-xl sm:h-12 p-1">
+              <TabsTrigger value="perfil" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00] text-[10px] sm:text-sm px-1 sm:px-3">
+                <User size={14} className="sm:mr-2" /> <span className="hidden sm:inline">Geral</span>
               </TabsTrigger>
-              <TabsTrigger value="financeiro" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00]">
-                <Wallet size={16} className="mr-2" /> Carteira
+              <TabsTrigger value="financeiro" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00] text-[10px] sm:text-sm px-1 sm:px-3">
+                <Wallet size={14} className="sm:mr-2" /> <span className="hidden sm:inline">Carteira</span>
               </TabsTrigger>
-              <TabsTrigger value="seguranca" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00]">
-                <ShieldCheck size={16} className="mr-2" /> Segurança
+              <TabsTrigger value="seguranca" className="rounded-lg data-[state=active]:bg-[#1c212b] data-[state=active]:text-[#ffcc00] text-[10px] sm:text-sm px-1 sm:px-3">
+                <ShieldCheck size={14} className="sm:mr-2" /> <span className="hidden sm:inline">Segurança</span>
               </TabsTrigger>
             </TabsList>
 
             <TabsContent value="perfil" className="mt-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   <label className="text-xs font-bold text-gray-500 uppercase ml-1">E-mail (Login)</label>
                   <input type="text" value={data.email} readOnly className="w-full bg-[#06070a] border border-[#1c212b] rounded-xl px-4 py-3 text-sm text-gray-400 cursor-not-allowed"/>

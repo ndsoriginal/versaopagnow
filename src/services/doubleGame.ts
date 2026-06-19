@@ -47,18 +47,9 @@ export async function manageDoubleRounds(): Promise<{
   time_remaining_ms?: number;
 }> {
   try {
-    const { data: { session } } = await supabase.auth.getSession();
-    const res = await fetch(
-      "https://rkkmtdpgrvtbotvypysq.supabase.co/functions/v1/manage-double-rounds",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token || ""}`,
-        },
-      }
-    );
-    return await res.json();
+    const { data, error } = await supabase.functions.invoke("manage-double-rounds");
+    if (error) return { success: false, error: error.message };
+    return data || { success: false, error: "Resposta vazia" };
   } catch (err: any) {
     return { success: false, error: err.message };
   }

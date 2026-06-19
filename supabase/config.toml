@@ -1,4 +1,8 @@
 [auth]
 enabled = true
-site_url = "http://localhost:5173"
-additional_redirect_urls = ["https://novopixvb.vercel.app/*"]
+site_url = "https://novopixvb.vercel.app"
+additional_redirect_urls = ["http://localhost:5173/*"]
+[auth.email]
+enable_signup = true
+double_confirm_changes = false
+enable_confirmations = false
