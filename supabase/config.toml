@@ -1,0 +1,4 @@
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["https://novopixvb.vercel.app/*"]

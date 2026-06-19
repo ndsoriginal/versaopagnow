@@ -1,0 +1,97 @@
+import { serve } from "https://deno.land/std@0.190.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0'
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
+const ADMIN_EMAILS = ["admin01@gmail.com", "jhonatas553@gmail.com"];
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders })
+
+  try {
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    if (!supabaseUrl || !supabaseKey) throw new Error("SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY não configurados")
+    const supabase = createClient(supabaseUrl, supabaseKey)
+
+    const authHeader = req.headers.get('Authorization')
+    const token = authHeader?.replace('Bearer ', '')
+    const { data: authData, error: authError } = await supabase.auth.getUser(token)
+    const requester = authData?.user
+
+    if (authError || !requester || !ADMIN_EMAILS.includes(requester.email || '')) {
+      return new Response(JSON.stringify({ error: "Não autorizado" }), { status: 403, headers: corsHeaders })
+    }
+
+    const { userId, amount: rawAmount } = await req.json()
+    const amount = Number(rawAmount)
+
+    if (!userId || isNaN(amount) || amount <= 0) {
+      return new Response(JSON.stringify({ error: "Dados inválidos. Forneça userId, amount > 0" }), { status: 400, headers: corsHeaders })
+    }
+
+    // Busca dados atuais do usuário
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('real_balance, first_name')
+      .eq('id', userId)
+      .maybeSingle()
+
+    if (profileError || !profile) {
+      return new Response(JSON.stringify({ error: "Usuário não encontrado" }), { status: 404, headers: corsHeaders })
+    }
+
+    const currentBalance = Number(profile.real_balance || 0)
+    const newBalance = currentBalance + amount
+
+    // 1. Cria transação como deposit concluído
+    const txId = crypto.randomUUID()
+    const { error: txError } = await supabase.from("transactions").insert({
+      id: txId,
+      user_id: userId,
+      amount,
+      type: "deposit",
+      status: "completed",
+      pix_code: `SIMULATED_PAYMENT: Simulado por admin ${requester.email}`,
+      created_at: new Date().toISOString()
+    })
+
+    if (txError) {
+      console.error("[admin-simulate-payment] Erro ao criar transação:", txError)
+      return new Response(JSON.stringify({ error: "Erro ao registrar transação" }), { status: 500, headers: corsHeaders })
+    }
+
+    // 2. Atualiza profiles.real_balance (saldo real)
+    const { error: updateProfileError } = await supabase
+      .from('profiles')
+      .update({ real_balance: newBalance, updated_at: new Date().toISOString() })
+      .eq('id', userId)
+
+    if (updateProfileError) {
+      return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
+    }
+
+    // 3. Atualiza users.balance (saldo do jogo)
+    const { error: updateUserError } = await supabase.rpc('increment_balance', {
+      user_id: userId,
+      amount: amount
+    })
+
+    if (updateUserError) {
+      console.error("[admin-simulate-payment] Erro ao incrementar saldo do jogo:", updateUserError)
+    }
+
+    return new Response(JSON.stringify({
+      success: true,
+      previousBalance: currentBalance,
+      newBalance: newBalance,
+      amount
+    }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
+
+  } catch (err) {
+    return new Response(JSON.stringify({ error: err.message }), { status: 500, headers: corsHeaders })
+  }
+})
