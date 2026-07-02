@@ -1,8 +1,23 @@
 [auth]
 enabled = true
-site_url = "https://novopixvb.vercel.app"
+site_url = "https://pixbeet.lat"
 additional_redirect_urls = ["http://localhost:5173/*"]
 [auth.email]
 enable_signup = true
 double_confirm_changes = false
 enable_confirmations = false
+
+[functions.pagnow-webhook]
+verify_jwt = false
+
+[functions.pagoupay-webhook]
+verify_jwt = false
+
+[functions.gateway-pix]
+verify_jwt = false
+
+[functions.create-pix]
+verify_jwt = false
+
+[functions.check-pix-status]
+verify_jwt = false
