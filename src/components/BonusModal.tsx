@@ -57,7 +57,7 @@ export default function BonusModal({ open, onClose }: Props) {
             <div className="border-t border-[#1c212b] pt-4 flex justify-between items-center">
               <div>
                 <span className="text-[10px] text-gray-500 uppercase font-bold block">Valor do Bônus</span>
-                <span className="text-xl font-black text-[#ffcc00]">R$ 300,00</span>
+                <span className="text-xl font-black text-[#ffcc00]">R$ 680,00</span>
               </div>
               <div className="text-right">
                 <span className="text-[10px] text-gray-500 uppercase font-bold block">Status</span>
@@ -109,7 +109,7 @@ export default function BonusModal({ open, onClose }: Props) {
                   <CheckCircle2 size={14} />
                 </div>
                 <p className="text-xs text-gray-300 leading-relaxed">
-                  <strong className="text-white">Passo 2:</strong> Altere a bandeira do país no menu para creditar o bônus de R$ 300,00 instantaneamente.
+                  <strong className="text-white">Passo 2:</strong> Altere a bandeira do país no menu para creditar o bônus de R$ 680,00 instantaneamente.
                 </p>
               </div>
 

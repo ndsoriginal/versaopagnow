@@ -16,7 +16,6 @@ import GlobalChat from "./components/GlobalChat";
 import MobileNotification from "./components/MobileNotification";
 import { SessionProvider } from "./context/SessionContext";
 import { initMetaPixel } from "./utils/metaPixel";
-import { playNotificationSound } from "./utils/notificationSound";
 import GamesPage from "./pages/GamesPage";
 import DemoPage from "./pages/DemoPage";
 import DoublePage from "./pages/DoublePage";
@@ -33,22 +32,27 @@ const App = () => {
   }, []);
 
   React.useEffect(() => {
+    const initAudio = () => {
+      import('@/hooks/useNotificationSound').then(({ ensureAudioCtx }) => {
+        ensureAudioCtx()
+      })
+      document.removeEventListener('click', initAudio)
+      document.removeEventListener('touchstart', initAudio)
+    }
+    document.addEventListener('click', initAudio)
+    document.addEventListener('touchstart', initAudio)
+  }, [])
+
+  React.useEffect(() => {
     const handleSWMessage = (event: MessageEvent) => {
       if (event.data?.type === 'PUSH_NOTIFICATION' && event.data?.data?.type) {
         import('@/hooks/useNotificationSound').then(({ playSound }) => {
           playSound(event.data.data.type)
         })
-        playNotificationSound()
       }
     }
     navigator.serviceWorker?.addEventListener('message', handleSWMessage)
     return () => navigator.serviceWorker?.removeEventListener('message', handleSWMessage)
-  }, [])
-
-  React.useEffect(() => {
-    const handleCustomSound = () => playNotificationSound()
-    window.addEventListener('play:notification-sound', handleCustomSound)
-    return () => window.removeEventListener('play:notification-sound', handleCustomSound)
   }, [])
 
   return (

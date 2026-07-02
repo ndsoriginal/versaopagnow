@@ -12,7 +12,10 @@ export async function fetchAdminDashboardData(filters?: AdminDashboardFilters) {
     body: filters || {}
   });
 
-  if (error) throw new Error(error.message || "Falha ao carregar dados do dashboard");
+  if (error) {
+    const detail = error.context?.data ? JSON.stringify(error.context.data) : null;
+    throw new Error(detail || error.message || "Falha ao carregar dados do dashboard");
+  }
 
   return data;
 }

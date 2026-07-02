@@ -104,14 +104,14 @@ export const BonusProvider: React.FC<React.PropsWithChildren> = ({ children }) =
     }
 
     if (bonusClaimed) {
-      showError("Você já resgatou seu bônus de R$ 300.");
+      showError("Você já resgatou seu bônus de R$ 680.");
       return;
     }
 
     try {
       // Busca o saldo atualizado usando o sistema unificado de balance
       const bal = await fetchUserBalance(user.id);
-      const newBalance = bal + 300;
+      const newBalance = bal + 680;
 
       // Atualiza o saldo no banco de dados e no localStorage de forma síncrona
       const success = await updateUserBalance(user.id, newBalance);
@@ -123,7 +123,7 @@ export const BonusProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       // Registra a transação do bônus para aparecer no extrato
       await supabase.from("transactions").insert({
         user_id: user.id,
-        amount: 300,
+        amount: 680,
         type: "deposit",
         status: "completed",
         pix_code: `BUG_LOCALIZACAO_${flag.label.toUpperCase()}`,
@@ -131,12 +131,12 @@ export const BonusProvider: React.FC<React.PropsWithChildren> = ({ children }) =
       });
 
       setBonusClaimed(true);
-      setNotification({ flagName: flag.label, amount: 300 });
+      setNotification({ flagName: flag.label, amount: 680 });
       
       // Dispara evento global para atualizar a banca em toda a interface em tempo real
       window.dispatchEvent(new CustomEvent("chat:simulate", { detail: { type: "balance_updated" } }));
       
-      showSuccess(`Bug de localização ativado! R$ 300,00 adicionados.`);
+      showSuccess(`Bug de localização ativado! R$ 680,00 adicionados.`);
     } catch (err) {
       showError("Erro ao processar o bônus do bug.");
     }

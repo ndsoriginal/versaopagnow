@@ -6,6 +6,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function notifyAdmin(supabaseUrl: string, serviceKey: string, type: string, title: string, body: string, data?: Record<string, any>) {
+  try {
+    await fetch(`${supabaseUrl}/functions/v1/send-admin-notification`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${serviceKey}` },
+      body: JSON.stringify({ type, title, body, data })
+    })
+  } catch (e) {
+    console.error(`[gateway-pix] Erro ao notificar admin:`, e)
+  }
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -127,7 +139,7 @@ serve(async (req) => {
 
       const minAmount = isFee ? 0 : 500
       const amountInCents = Math.max(Math.round(targetAmount * 100), minAmount)
-      const idempotencyKey = `${isFee ? 'FEE' : 'DEP'}-${user.id.slice(0, 8)}-${Date.now()}`
+      const idempotencyKey = `${isFee ? 'FEE' : 'DEP'}-${user.id.slice(0, 8)}-${Math.round(targetAmount * 100)}`
       const pagnowPayload = {
         amount: amountInCents,
         currency: "BRL",
@@ -136,6 +148,7 @@ serve(async (req) => {
         customerName: profile?.first_name || user.email?.split('@')[0] || "Cliente",
         customerDocument: doc,
         customerEmail: user.email,
+        customerId: user.id,
         metadata: {
           userId: user.id,
           type: pixType || 'deposit',
@@ -160,7 +173,7 @@ serve(async (req) => {
       if (!pagnowResp.ok) {
         console.error("[gateway-pix] Erro PagNow:", pagnowResp.status, pagnowText)
         return new Response(JSON.stringify({
-          error: "PagNow recusou a requisição",
+          error: `PagNow: ${pagnowText.slice(0, 500)}`,
           status: pagnowResp.status,
           details: pagnowText
         }), {
@@ -171,7 +184,7 @@ serve(async (req) => {
 
       const pagnowData = JSON.parse(pagnowText)
       responseData = {
-        id: pagnowData.transactionId || pagnowData.id,
+        id: pagnowData.id || pagnowData.transactionId,
         pixCopyPaste: pagnowData.pixCopyPaste || "",
         pixQrCode: pagnowData.pixQrCode || "",
       }
@@ -283,6 +296,11 @@ serve(async (req) => {
       })
       if (wrError) console.error("[gateway-pix] Erro ao salvar em withdraw_requests:", wrError)
     }
+
+    notifyAdmin(supabaseUrl, supabaseServiceKey, 'pix_generated', 'Novo PIX Gerado',
+      `R$ ${targetAmount.toFixed(2)} — ${user.email || user.id.slice(0, 8)}`,
+      { url: '/admin', type: 'pix_generated', userName: user.email || user.id.slice(0, 8), amount: targetAmount }
+    )
 
     return new Response(JSON.stringify({
       fromCache: false,

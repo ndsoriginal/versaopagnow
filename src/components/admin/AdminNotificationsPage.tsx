@@ -8,7 +8,6 @@ import {
   isNotificationSoundEnabled,
   enableNotificationSound,
   disableNotificationSound,
-  playNotificationSound,
 } from "@/utils/notificationSound";
 
 export default function AdminNotificationsPage() {
@@ -39,7 +38,7 @@ export default function AdminNotificationsPage() {
 
   const handleTestMp3 = async () => {
     setTestingMp3(true);
-    await playNotificationSound();
+    await playSound('pix_paid');
     setTimeout(() => setTestingMp3(false), 1000);
   };
 
@@ -138,7 +137,7 @@ export default function AdminNotificationsPage() {
 
       <div className="bg-[#0d0f14] border border-[#1c212b] rounded-3xl p-6">
         <h3 className="text-lg font-black uppercase tracking-wider mb-4 flex items-center gap-2">
-          <Volume2 size={20} className="text-[#ffcc00]" /> Som de Notificação MP3
+          <Volume2 size={20} className="text-[#ffcc00]" /> Som de Notificação
         </h3>
 
         <div className="flex flex-col md:flex-row md:items-center gap-4 mb-6">
@@ -149,7 +148,7 @@ export default function AdminNotificationsPage() {
             </span>
           </div>
           <span className="text-xs text-gray-500">
-            Toca /sounds/notification.mp3 ao receber novas notificações
+            Toca um som diferente para cada tipo de notificação
           </span>
         </div>
 
@@ -171,12 +170,12 @@ export default function AdminNotificationsPage() {
             className="flex items-center gap-2 bg-[#13161d] border border-[#1c212b] px-6 py-3 rounded-2xl text-sm font-bold hover:bg-[#1c212b] transition-all disabled:opacity-50"
           >
             {testingMp3 ? <Loader2 size={16} className="animate-spin" /> : <Music size={16} className="text-[#ffcc00]" />}
-            Testar Som MP3
+            Testar Som (Pix Pago)
           </button>
         </div>
         <p className="text-[10px] text-gray-600 mt-4 leading-relaxed">
           O navegador pode bloquear o áudio até que você interaja com a página.
-          Clique em "Ativar Som" para liberar. A preferência fica salva no navegador.
+          Clique em "Ativar Som" e depois teste para liberar.
         </p>
       </div>
 
@@ -197,6 +196,7 @@ export default function AdminNotificationsPage() {
                   <div>
                     <p className="text-sm font-bold">{info.label}</p>
                     <p className="text-xs text-gray-500">{info.description}</p>
+                    <p className="text-[10px] text-gray-600 mt-0.5">{info.soundLabel}</p>
                   </div>
                   <button
                     onClick={() => handleTestSound(type)}

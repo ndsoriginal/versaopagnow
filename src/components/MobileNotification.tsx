@@ -3,13 +3,14 @@
 import React, { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { playNotificationSound } from "@/utils/notificationSound";
+import { playSound, ensureAudioCtx } from "@/hooks/useNotificationSound";
 
 type NotificationData = {
   title: string;
   body: string;
   icon?: string;
   brand?: "nubank" | "pixbett";
+  type?: "new_lead" | "pix_paid" | "pix_generated";
 };
 
 export default function MobileNotification() {
@@ -24,7 +25,10 @@ export default function MobileNotification() {
       const customEvent = e as CustomEvent<NotificationData>;
       setNotification(customEvent.detail);
       setVisible(true);
-      playNotificationSound();
+      if (customEvent.detail.type) {
+        ensureAudioCtx()
+        setTimeout(() => playSound(customEvent.detail.type), 50)
+      }
 
       // Tenta vibrar o celular se o navegador suportar (padrão de notificação recebida)
       if ("vibrate" in navigator) {
@@ -32,11 +36,9 @@ export default function MobileNotification() {
       }
 
       // Auto-ocultar após 12 segundos conforme solicitado
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         setVisible(false);
       }, 12000);
-
-      return () => clearTimeout(timer);
     };
 
     window.addEventListener("mobile:notification", handleNotification);
@@ -66,8 +68,8 @@ export default function MobileNotification() {
             className="h-11 w-11 shrink-0 shadow-sm rounded-[14px] object-cover" 
           />
         ) : (
-          <div className="h-11 w-11 rounded-[14px] bg-[#ffcc00] flex items-center justify-center text-black shrink-0 shadow-sm">
-            <img src="/pixbetlogo.png" alt="PixBett" className="h-5 w-auto object-contain grayscale brightness-0" />
+          <div className="h-11 w-11 rounded-[14px] bg-[#ffcc00] flex items-center justify-center text-black shrink-0 shadow-sm overflow-hidden">
+            <img src="/logopw.jpg" alt="PixBett" className="h-full w-full object-cover" />
           </div>
         )}
 

@@ -43,38 +43,10 @@ export const EXTERNAL_GAMES: ExternalGame[] = [
     provider: "PG Soft"
   },
   {
-    id: "69",
-    name: "Bikini Paradise",
-    url: "https://apisoft.ilike.motorcycles/69/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
     id: "40",
     name: "Jungle Delight",
     url: "https://apisoft.ilike.motorcycles/40/",
     thumbnail: "/Jogos/Jungle Delight.jpg",
-    provider: "PG Soft"
-  },
-  {
-    id: "48",
-    name: "Double Fortune",
-    url: "https://apisoft.ilike.motorcycles/48/",
-    thumbnail: "/Jogos/Double Fortune.jpg",
-    provider: "PG Soft"
-  },
-  {
-    id: "39",
-    name: "Piggy Gold",
-    url: "https://apisoft.ilike.motorcycles/39/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
-    id: "42",
-    name: "Ganesha Gold",
-    url: "https://apisoft.ilike.motorcycles/42/",
-    thumbnail: "/placeholder.svg",
     provider: "PG Soft"
   },
   {
@@ -92,13 +64,6 @@ export const EXTERNAL_GAMES: ExternalGame[] = [
     provider: "PG Soft"
   },
   {
-    id: "95",
-    name: "Majestic Treasures",
-    url: "https://apisoft.ilike.motorcycles/95/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
     id: "101",
     name: "Rise of Apollo",
     url: "https://apisoft.ilike.motorcycles/101/",
@@ -113,27 +78,6 @@ export const EXTERNAL_GAMES: ExternalGame[] = [
     provider: "PG Soft"
   },
   {
-    id: "125",
-    name: "Butterfly Blossom",
-    url: "https://apisoft.ilike.motorcycles/125/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
-    id: "135",
-    name: "Wild Bounty Showdown",
-    url: "https://apisoft.ilike.motorcycles/135/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
-    id: "1601012",
-    name: "Lucky Clover Lady",
-    url: "https://apisoft.ilike.motorcycles/1601012/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
     id: "1682240",
     name: "Cash Mania",
     url: "https://apisoft.ilike.motorcycles/1682240/",
@@ -141,38 +85,10 @@ export const EXTERNAL_GAMES: ExternalGame[] = [
     provider: "PG Soft"
   },
   {
-    id: "1312883",
-    name: "Prosperity Fortune Tree",
-    url: "https://apisoft.ilike.motorcycles/1312883/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
-    id: "1489936",
-    name: "Ultimate Striker",
-    url: "https://apisoft.ilike.motorcycles/1489936/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
     id: "1529867",
     name: "Ninja Raccoon Frenzy",
     url: "https://apisoft.ilike.motorcycles/1529867/",
     thumbnail: "/Jogos/Ninja Raccoon.jpg",
-    provider: "PG Soft"
-  },
-  {
-    id: "1727711",
-    name: "Three Crazy Piggies",
-    url: "https://apisoft.ilike.motorcycles/1727711/",
-    thumbnail: "/placeholder.svg",
-    provider: "PG Soft"
-  },
-  {
-    id: "1738001",
-    name: "Chicky Run",
-    url: "https://apisoft.ilike.motorcycles/1738001/",
-    thumbnail: "/placeholder.svg",
     provider: "PG Soft"
   }
 ];

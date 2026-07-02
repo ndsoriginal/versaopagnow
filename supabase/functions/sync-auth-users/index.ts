@@ -29,7 +29,22 @@ serve(async (req) => {
         balance: 0
       }, { onConflict: 'id' })
 
-      if (!upsertError) synced++
+      if (upsertError) {
+        console.error(`[sync-auth-users] Erro ao upsert users/${u.id}:`, upsertError)
+        continue
+      }
+
+      const { error: profileError } = await supabase.from('profiles').upsert({
+        id: u.id,
+        first_name: u.email?.split('@')[0] || 'Usuário',
+        real_balance: 0
+      }, { onConflict: 'id', ignoreDuplicates: true })
+
+      if (profileError) {
+        console.error(`[sync-auth-users] Erro ao upsert profiles/${u.id}:`, profileError)
+      }
+
+      synced++
     }
 
     console.log(`[sync-auth-users] ${synced} usuários sincronizados`)

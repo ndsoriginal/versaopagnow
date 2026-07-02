@@ -53,7 +53,6 @@ serve(async (req) => {
     }
 
     const currentBalance = Number(profile.real_balance || 0)
-    const newBalance = currentBalance + amount
 
     // 1. Cria transação como deposit concluído
     const txId = crypto.randomUUID()
@@ -72,17 +71,16 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Erro ao registrar transação" }), { status: 500, headers: corsHeaders })
     }
 
-    // 2. Atualiza profiles.real_balance (saldo real)
-    const { error: updateProfileError } = await supabase
-      .from('profiles')
-      .update({ real_balance: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', userId)
+    // 2. Atualiza saldos atomicamente
+    const { error: updateProfileError } = await supabase.rpc('increment_real_balance', {
+      user_id: userId,
+      amount: amount
+    })
 
     if (updateProfileError) {
       return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
     }
 
-    // 3. Atualiza users.balance (saldo do jogo)
     const { error: updateUserError } = await supabase.rpc('increment_balance', {
       user_id: userId,
       amount: amount
@@ -92,10 +90,13 @@ serve(async (req) => {
       console.error("[admin-simulate-payment] Erro ao incrementar saldo do jogo:", updateUserError)
     }
 
+    const newBalance = currentBalance + amount
+
     return new Response(JSON.stringify({
       success: true,
       previousBalance: currentBalance,
       newBalance: newBalance,
+      creditedAmount: amount,
       amount
     }), { headers: { ...corsHeaders, "Content-Type": "application/json" } })
 

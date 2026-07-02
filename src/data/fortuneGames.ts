@@ -46,13 +46,5 @@ export const fortuneGames = [
     status: "demo",
     thumbnail: "/Jogos/Fortune Snake.jpg",
     demoUrl: "https://example.com/fortune-snake-demo"
-  },
-  {
-    name: "Double Fortune",
-    slug: "double-fortune",
-    provider: "PG Soft",
-    status: "demo",
-    thumbnail: "/Jogos/Double Fortune.jpg",
-    demoUrl: "https://example.com/double-fortune-demo"
   }
 ];

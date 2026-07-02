@@ -3,13 +3,16 @@ import { cn } from "@/lib/utils";
 import {
   Activity, Users, Gift, TrendingUp, Settings,
   QrCode, Sparkles, ArrowDownUp, BarChart3, ShieldCheck, Bell,
-  X
+  MailCheck, X
 } from "lucide-react";
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type IconType = React.ComponentType<any>;
 
 type Tab = {
   id: string;
   label: string;
-  icon: React.ComponentType<{ size?: number }>;
+  icon: IconType;
 };
 
 const mainItems: Tab[] = [
@@ -20,6 +23,7 @@ const mainItems: Tab[] = [
 ];
 
 const moreItems: Tab[] = [
+  { id: "email", label: "Email", icon: MailCheck },
   { id: "attempts", label: "Tentativas PIX", icon: QrCode },
   { id: "gameconfig", label: "Jogos", icon: Sparkles },
   { id: "withdraw", label: "Saques", icon: ArrowDownUp },
@@ -40,7 +44,7 @@ export default function AdminMobileNav({ activeTab, onTabChange }: Props) {
 
   return (
     <>
-      <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden border-t border-white/10 bg-[#080A0F]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]">
+      <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden border-t border-white/10 bg-[#080A0F]/95 backdrop-blur-xl pb-[env(safe-area-inset-bottom,0px)]">
         <div className="grid grid-cols-5 h-[72px]">
           {mainItems.map((item) => {
             const Icon = item.icon;
@@ -94,7 +98,7 @@ export default function AdminMobileNav({ activeTab, onTabChange }: Props) {
       </nav>
 
       {showMore && (
-        <div className="fixed inset-0 z-[60] md:hidden">
+        <div className="fixed inset-0 z-[60] lg:hidden">
           <div
             className="absolute inset-0 bg-black/60"
             onClick={() => setShowMore(false)}

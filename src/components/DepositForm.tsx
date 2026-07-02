@@ -34,7 +34,21 @@ export default function DepositForm({ userId, userEmail, initialAmount }: Props)
   const [isLocked, setIsLocked] = useState(false);
   const [fromCache, setFromCache] = useState(false);
   const [createdAt, setCreatedAt] = useState<string | null>(null);
-  const { markDeposit } = useBonus();
+  const { markDeposit, hasDeposited30 } = useBonus();
+  const [bonusCountdown, setBonusCountdown] = useState(600);
+  const [bonusDeadlineStr, setBonusDeadlineStr] = useState("");
+
+  useEffect(() => {
+    const deadline = Date.now() + 10 * 60 * 1000;
+    setBonusDeadlineStr(new Date(deadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    setBonusCountdown(600);
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+      setBonusCountdown(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const loadCpf = async () => {
@@ -127,8 +141,9 @@ export default function DepositForm({ userId, userEmail, initialAmount }: Props)
     window.dispatchEvent(
       new CustomEvent("mobile:notification", {
         detail: {
-          title: "Depósito Recebido",
-          body: `Seu depósito de R$ ${amount.toFixed(2)} foi creditado com sucesso na sua conta!`,
+          title: "💰 Venda Aprovada",
+          body: `R$ ${Number(amount).toFixed(2)}`,
+          type: "pix_paid",
         },
       })
     );
@@ -223,8 +238,9 @@ export default function DepositForm({ userId, userEmail, initialAmount }: Props)
       });
 
       if (error) {
-        console.error("[DepositForm] Erro da Edge Function:", error)
-        showError(error.message || "Falha ao gerar PIX");
+        const edgeError = (error as any)?.context?.data?.error || error.message
+        console.error("[DepositForm] Erro da Edge Function:", edgeError, error)
+        showError(edgeError);
         setStep("checkout");
         return;
       }
@@ -255,8 +271,9 @@ export default function DepositForm({ userId, userEmail, initialAmount }: Props)
       setStep("qrcode");
 
     } catch (err: any) {
-      console.error("[DepositForm] Erro catch:", err)
-      showError(err.message || "Falha ao processar requisição.");
+      const edgeError = err.context?.data?.error || err.message
+      console.error("[DepositForm] Erro catch:", edgeError, err)
+      showError(edgeError);
       setStep("checkout");
     }
   };
@@ -422,13 +439,21 @@ export default function DepositForm({ userId, userEmail, initialAmount }: Props)
                 <p className="text-xs text-gray-500 mb-1">Cobrança já existente reutilizada</p>
               )}
               <p className="text-sm font-bold text-white">
-                Não perca a oportunidade! Bônus de <span className="text-[#ffcc00]">R$ 300,00</span>
+                Não perca a oportunidade! Bônus de <span className="text-[#ffcc00]">R$ 680,00</span>
               </p>
               <span className="absolute -top-1 -right-4 flex h-3 w-3">
                 <span className="animate-ping absolute inline-flex h-3 w-3 rounded-full bg-[#ffcc00] opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-3 w-3 bg-[#ffcc00]"></span>
               </span>
             </div>
+            {!hasDeposited30 && bonusCountdown > 0 && (
+              <div className="flex items-center justify-center gap-2 text-amber-500 animate-pulse mt-3">
+                <Clock size={14} />
+                <span className="text-xs font-black uppercase tracking-wider">
+                  ⏰ Bônus quase encerrando! <strong className="text-white">{formatTime(bonusCountdown)}</strong> restantes
+                </span>
+              </div>
+            )}
           </div>
 
           <div className="text-center">

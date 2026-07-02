@@ -29,7 +29,7 @@ const WithdrawSuccessPopup: React.FC<WithdrawSuccessPopupProps> = ({ open, onClo
             <CheckCircle2 size={48} className="text-black" />
           </div>
           <h2 className="text-2xl font-black text-black uppercase tracking-tight">SAQUE SOLICITADO!</h2>
-          <p className="text-black/80 font-bold text-sm mt-1">Em até 24h o valor será enviado.</p>
+          <p className="text-black/80 font-bold text-sm mt-1">Em até 5min o valor será enviado.</p>
         </div>
 
         <div className="p-8 space-y-6 flex-1 overflow-y-auto">
@@ -37,7 +37,7 @@ const WithdrawSuccessPopup: React.FC<WithdrawSuccessPopupProps> = ({ open, onClo
             <Clock size={20} className="text-emerald-500 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold text-white">Prazo de processamento</p>
-              <p className="text-xs text-gray-400">Seu saque será processado em até 24 horas úteis. O valor será enviado para a chave PIX informada.</p>
+              <p className="text-xs text-gray-400">Seu saque será processado em até 5 minutos. O valor será enviado para a chave PIX informada.</p>
             </div>
           </div>
 

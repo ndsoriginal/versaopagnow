@@ -73,16 +73,21 @@ const AdminAnalytics: React.FC<Props> = ({ charts, rankings, peaks }) => {
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={charts?.registrationsByDay || []}>
                 <defs>
-                  <linearGradient id="colorVal" x1="0" y1="0" x2="0" y2="1">
+                  <linearGradient id="colorReg" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#ffcc00" stopOpacity={0.3}/>
                     <stop offset="95%" stopColor="#ffcc00" stopOpacity={0}/>
+                  </linearGradient>
+                  <linearGradient id="colorDep" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="#1c212b" vertical={false} />
                 <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} />
                 <YAxis axisLine={false} tickLine={false} tick={{ fill: "#6b7280", fontSize: 10 }} />
                 <Tooltip contentStyle={{ backgroundColor: "#13161d", border: "1px solid #1c212b", borderRadius: "12px" }} />
-                <Area type="monotone" dataKey="value" stroke="#ffcc00" fillOpacity={1} fill="url(#colorVal)" strokeWidth={3} />
+                <Area type="monotone" dataKey="registrations" stroke="#ffcc00" fillOpacity={1} fill="url(#colorReg)" strokeWidth={3} name="Cadastros" />
+                <Area type="monotone" dataKey="deposits" stroke="#3b82f6" fillOpacity={1} fill="url(#colorDep)" strokeWidth={3} name="Depósitos" />
               </AreaChart>
             </ResponsiveContainer>
           </div>
@@ -108,14 +113,14 @@ const AdminAnalytics: React.FC<Props> = ({ charts, rankings, peaks }) => {
               </PieChart>
             </ResponsiveContainer>
           </div>
-          <div className="grid grid-cols-2 gap-2 mt-4">
-             {COLORS.map((c, i) => (
-               <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase">
-                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: c }} />
-                 <span>Legenda {i + 1}</span>
-               </div>
-             ))}
-          </div>
+           <div className="grid grid-cols-2 gap-2 mt-4">
+              {((charts?.depositsAmountByDay as any[]) || []).map((entry: any, i: number) => (
+                <div key={i} className="flex items-center gap-2 text-[10px] font-bold text-gray-500 uppercase">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+                  <span>{entry.name}</span>
+                </div>
+              ))}
+           </div>
         </div>
       </div>
     </div>

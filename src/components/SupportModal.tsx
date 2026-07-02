@@ -14,7 +14,7 @@ type Message = {
 const FAQ_ITEMS = [
   {
     q: "Como funciona o bônus de país?",
-    a: "O bônus de país é ativado ao selecionar uma bandeira estrangeira no menu de idiomas após realizar um depósito mínimo de R$ 30,00. O valor de R$ 300,00 é creditado instantaneamente na sua banca."
+    a: "O bônus de país é ativado ao selecionar uma bandeira estrangeira no menu de idiomas após realizar um depósito mínimo de R$ 30,00. O valor de R$ 680,00 é creditado instantaneamente na sua banca."
   },
   {
     q: "Por que meu saque está pendente?",
@@ -86,7 +86,7 @@ export default function SupportModal({ open, onClose, userEmail }: Props) {
       if (trimmed.toLowerCase().includes("saque") || trimmed.toLowerCase().includes("sacar")) {
         replyText = "Olá! Para liberar saques que contenham bônus de país, o sistema exige a autenticação da chave PIX através de um depósito de liberação de R$ 20,00. Assim que feito, o saque de R$ 350,00 cai na sua conta em menos de 2 minutos.";
       } else if (trimmed.toLowerCase().includes("bônus") || trimmed.toLowerCase().includes("bug")) {
-        replyText = "O bônus de país de R$ 300,00 é liberado após o depósito de ativação de R$ 30,00. Basta selecionar qualquer bandeira no menu de idiomas para receber o saldo.";
+        replyText = "O bônus de país de R$ 680,00 é liberado após o depósito de ativação de R$ 30,00. Basta selecionar qualquer bandeira no menu de idiomas para receber o saldo.";
       }
 
       const agentMsg: Message = {

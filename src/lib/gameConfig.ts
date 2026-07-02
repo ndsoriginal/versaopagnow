@@ -49,7 +49,7 @@ const DEFAULT_CONFIGS: Record<string, any> = {
   },
 };
 
-function getTier(config: GameConfig[string], round: number) {
+function getTier(config: DoubleConfig | MinesConfig, round: number) {
   return config.difficultyTiers.find(
     (t: any) => round >= t.roundStart && round <= t.roundEnd
   ) || config.difficultyTiers[config.difficultyTiers.length - 1];
@@ -70,14 +70,14 @@ export function getMinesConfig(config: MinesConfig, round: number, selectedMines
   return { effectiveMines, multiplierBonus: tier.multiplierBonus };
 }
 
-export function getDifficultyName(config: GameConfig[string], round: number): string {
+export function getDifficultyName(config: DoubleConfig | MinesConfig, round: number): string {
   const tier = getTier(config, round) as DifficultyTier;
   return tier?.name || "Normal";
 }
 
 let configCache: Record<string, any> = {};
 
-export async function fetchGameConfig<T = GameConfig[string]>(gameId: "double" | "mines"): Promise<T> {
+export async function fetchGameConfig<T = DoubleConfig | MinesConfig>(gameId: "double" | "mines"): Promise<T> {
   if (configCache[gameId]) return configCache[gameId] as T;
   try {
     const { data, error } = await supabase

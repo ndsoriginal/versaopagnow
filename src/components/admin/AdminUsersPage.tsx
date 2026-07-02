@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from "react";
-import { Search, Wallet, ArrowDownToLine, QrCode, CalendarDays, Loader2, User as UserIcon, ShieldCheck, Copy, Check } from "lucide-react";
+import { Search, Wallet, ArrowDownToLine, QrCode, CalendarDays, Loader2, User as UserIcon, ShieldCheck, Copy, Check, Send } from "lucide-react";
 import { cn } from "@/lib/utils";
 import AdminUserDetailModal from "./AdminUserDetailModal";
 import AdminBalanceModal from "./AdminBalanceModal";
+import AdminSendBonusModal from "./AdminSendBonusModal";
 
 type UserRow = {
   id: string;
@@ -26,6 +27,7 @@ export default function AdminUsersPage({ users, onRefresh }: Props) {
   const [search, setSearch] = useState("");
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [balanceUser, setBalanceUser] = useState<{ id: string; email: string; name: string; currentBalance: number } | null>(null);
+  const [bonusEmailUser, setBonusEmailUser] = useState<{ id: string; email: string; name: string } | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const filtered = useMemo(() => {
@@ -127,6 +129,10 @@ export default function AdminUsersPage({ users, onRefresh }: Props) {
                     className="h-8 w-8 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center hover:bg-emerald-500/20 transition-all" title="Gerenciar Saldo">
                     <Wallet size={14} className="text-emerald-400" />
                   </button>
+                  <button onClick={(e) => { e.stopPropagation(); setBonusEmailUser({ id: u.id, email: u.email, name: u.name || u.email }); }}
+                    className="h-8 w-8 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center hover:bg-amber-500/20 transition-all" title="Bônus + Email">
+                    <Send size={14} className="text-amber-400" />
+                  </button>
                   <button onClick={(e) => { e.stopPropagation(); copyToClipboard(u.id, u.id); }}
                     className="h-8 w-8 rounded-xl bg-[#13161d] border border-[#1c212b] flex items-center justify-center hover:bg-[#1c212b] transition-all" title="Copiar ID">
                     {copiedId === u.id ? <Check size={14} className="text-emerald-400" /> : <Copy size={14} className="text-gray-500" />}
@@ -146,6 +152,14 @@ export default function AdminUsersPage({ users, onRefresh }: Props) {
         <AdminBalanceModal
           user={balanceUser}
           onClose={() => setBalanceUser(null)}
+          onSuccess={() => { onRefresh?.(); }}
+        />
+      )}
+
+      {bonusEmailUser && (
+        <AdminSendBonusModal
+          user={bonusEmailUser}
+          onClose={() => setBonusEmailUser(null)}
           onSuccess={() => { onRefresh?.(); }}
         />
       )}

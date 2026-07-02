@@ -20,44 +20,72 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     )
 
-    // Buscar gateway ativo
-    const { data: gateways } = await supabase
-      .from('payment_gateways')
+    // Buscar a transação local primeiro para saber qual gateway a processou
+    const { data: tx, error: txError } = await supabase
+      .from('transactions')
       .select('*')
-      .eq('is_active', true)
-      .limit(1)
+      .eq('id', txId)
+      .maybeSingle()
 
-    const activeGateway = gateways?.[0]
-
-    if (!activeGateway) {
-      throw new Error("Nenhum gateway de pagamento ativo")
+    if (txError || !tx) {
+      console.error(`[check-pix-status] Transação ${txId} não encontrada no banco local:`, txError)
+      return new Response(JSON.stringify({ success: false, error: "Transação não encontrada" }), {
+        status: 404,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
     }
 
-    const config = typeof activeGateway.config === 'string' ? JSON.parse(activeGateway.config) : activeGateway.config
+    // Se já completada, retorna imediatamente
+    if (tx.status === 'completed') {
+      return new Response(JSON.stringify({ success: true, status: 'paid', already_processed: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    // Usar o gateway salvo na transação para consultar o status no provedor correto
+    const txGateway = tx.gateway || ''
+
+    // Buscar a configuração desse gateway específico na tabela payment_gateways
+    const { data: configs } = await supabase
+      .from('payment_gateways')
+      .select('*')
+      .eq('slug', txGateway)
+      .limit(1)
+
+    const gatewayConfig = configs?.[0]
+
+    if (!gatewayConfig) {
+      console.error(`[check-pix-status] Gateway "${txGateway}" não encontrado na configuração`)
+      return new Response(JSON.stringify({ success: false, error: `Gateway "${txGateway}" não configurado` }), {
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    const config = typeof gatewayConfig.config === 'string' ? JSON.parse(gatewayConfig.config) : gatewayConfig.config
     let chargeStatus = ''
 
-    if (activeGateway.slug === 'pagnow') {
+    if (gatewayConfig.slug === 'pagnow') {
       const apiKey = config.api_key || Deno.env.get("PAGNOW_API_KEY")
       if (!apiKey) throw new Error("PagNow API key não configurada")
 
       const resp = await fetch(`https://v2.pagnow.com/v1/payments/${txId}`, {
         headers: { 'Content-Type': 'application/json', 'apikey': apiKey }
       })
-      if (resp.ok) {
-        const json = await resp.json()
-        chargeStatus = json.status || ''
-        console.log(`[check-pix-status] PagNow status: ${chargeStatus}`, JSON.stringify(json).slice(0, 300))
-      } else {
-        console.error(`[check-pix-status] PagNow erro: ${resp.status}`)
-      }
-    } else if (activeGateway.slug === 'pagoupay') {
+  if (resp.ok) {
+    const json = await resp.json()
+    chargeStatus = json.status || ''
+    console.log(`[check-pix-status] Status da PagNow para ${txId}: ${chargeStatus}`)
+  } else {
+    console.warn(`[check-pix-status] PagNow ainda não reconhece ${txId} (${resp.status}) — tratando como pendente`)
+  }
+    } else if (gatewayConfig.slug === 'pagoupay') {
       const pk = config.public_key || ""
       const sk = config.secret_key || ""
       if (!pk || !sk) throw new Error("PagouPay chaves não configuradas")
 
       const authHeader = `Bearer ${pk}:${sk}`
 
-      // Tenta GET /api/v1/pix/{txId}
       try {
         const resp = await fetch(`https://pagoupay.com/api/v1/pix/${txId}`, {
           headers: { 'Authorization': authHeader }
@@ -65,13 +93,12 @@ serve(async (req) => {
         if (resp.ok) {
           const json = await resp.json()
           chargeStatus = json.data?.status || json.status || ''
-          console.log(`[check-pix-status] PagouPay /pix/${txId}: ${chargeStatus}`, JSON.stringify(json).slice(0, 300))
+          console.log(`[check-pix-status] PagouPay /pix/${txId}: ${chargeStatus}`)
         }
       } catch (e) {
         console.warn(`[check-pix-status] PagouPay /pix/${txId} falhou:`, e)
       }
 
-      // Fallback: lista de transações
       if (!chargeStatus) {
         try {
           const resp = await fetch(`https://pagoupay.com/api/v1/transactions?limit=100`, {
@@ -94,77 +121,78 @@ serve(async (req) => {
       }
     }
 
-    console.log(`[check-pix-status] Status final: "${chargeStatus}"`)
+    console.log(`[check-pix-status] Status da transação ${txId}: "${chargeStatus}"`)
 
     const isPaid = chargeStatus === 'PAID' || chargeStatus === 'paid'
       || chargeStatus === 'APPROVED' || chargeStatus === 'approved'
       || chargeStatus === 'SETTLED' || chargeStatus === 'settled'
 
     if (isPaid) {
-      // Buscar a transação local no banco
-      const { data: tx, error: txError } = await supabase
+      // Atomic claim: only process if still pending
+      const now = new Date().toISOString()
+      const { data: claimedTx } = await supabase
         .from('transactions')
-        .select('*')
+        .update({ status: 'completed' })
         .eq('id', txId)
+        .eq('status', 'pending')
+        .select()
         .maybeSingle()
-      
-      if (txError || !tx) {
-        console.error(`[check-pix-status] Transação ${txId} não encontrada no banco local:`, txError);
-        return new Response(JSON.stringify({ success: false, error: "Transação não encontrada" }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        })
-      }
 
-      // Se já estiver completada, não faz nada
-      if (tx.status === 'completed') {
+      if (!claimedTx) {
+        console.log(`[check-pix-status] Transação ${txId} já processada por outro processo`)
         return new Response(JSON.stringify({ success: true, status: 'paid', already_processed: true }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' }
         })
       }
 
-      console.log(`[check-pix-status] Processando crédito de R$ ${tx.amount} para o usuário ${tx.user_id}`)
+      console.log(`[check-pix-status] Processando crédito de R$ ${claimedTx.amount} para o usuário ${claimedTx.user_id}`)
 
-      // 3. Buscar email do usuário para upsert
-      const { data: userAuth } = await supabase.auth.admin.getUserById(tx.user_id);
-      const userEmail = userAuth?.user?.email || tx.user_id;
+      const { data: userAuth } = await supabase.auth.admin.getUserById(claimedTx.user_id)
+      const userEmail = userAuth?.user?.email || claimedTx.user_id
 
-      const { error: userInitError } = await supabase.from('users').upsert({ 
-        id: tx.user_id,
+      const { error: userInitError } = await supabase.from('users').upsert({
+        id: claimedTx.user_id,
         email: userEmail
-      }, { onConflict: 'id' });
+      }, { onConflict: 'id' })
 
       if (userInitError) {
-        console.error("[check-pix-status] Erro ao garantir existência do usuário:", userInitError);
+        console.error("[check-pix-status] Erro ao garantir existência do usuário:", userInitError)
       }
 
-      // 4. Atualizar transação para 'completed'
-      const { error: updateTxError } = await supabase
-        .from('transactions')
-        .update({ status: 'completed' })
-        .eq('id', txId)
-
-      if (updateTxError) throw updateTxError
-
-      // 4b. Atualizar pix_requests
       await supabase
         .from('pix_requests')
-        .update({ status: 'paid', updated_at: new Date().toISOString() })
+        .update({ status: 'paid', updated_at: now })
         .eq('transaction_id', txId)
 
-      // 5. Incrementar saldo atomicamente usando RPC
       const { data: newBalance, error: balanceError } = await supabase.rpc('increment_balance', {
-        user_id: tx.user_id,
-        amount: Number(tx.amount)
+        user_id: claimedTx.user_id,
+        amount: Number(claimedTx.amount)
       })
 
       if (balanceError) {
-        console.error("[check-pix-status] Erro ao incrementar saldo:", balanceError);
+        console.error("[check-pix-status] Erro ao incrementar saldo:", balanceError)
         throw balanceError
       }
 
-      console.log(`[check-pix-status] Saldo atualizado com sucesso: ${newBalance}`)
-      
+      await supabase.rpc('increment_real_balance', {
+        user_id: claimedTx.user_id,
+        amount: Number(claimedTx.amount)
+      }).catch(e => console.error("[check-pix-status] Erro ao incrementar real_balance:", e))
+
+      console.log(`[check-pix-status] Saldo atualizado: ${newBalance}`)
+
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+      const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+      try {
+        await fetch(`${supabaseUrl}/functions/v1/send-admin-notification`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
+          body: JSON.stringify({ type: 'pix_paid', title: '💰 Venda Aprovada', body: `R$ ${Number(claimedTx.amount).toFixed(2)}`, data: { url: '/admin', type: 'pix_paid', userName: userEmail || claimedTx.user_id.slice(0, 8), amount: claimedTx.amount } })
+        })
+      } catch (e) {
+        console.error(`[check-pix-status] Erro ao notificar admin:`, e)
+      }
+
       return new Response(JSON.stringify({ success: true, status: 'paid' }), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       })

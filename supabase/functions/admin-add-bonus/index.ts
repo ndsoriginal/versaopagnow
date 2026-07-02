@@ -52,7 +52,6 @@ serve(async (req) => {
     }
 
     const currentBalance = Number(profile.real_balance || 0)
-    const newBalance = currentBalance + amount
 
     // 1. Registra transação PRIMEIRO
     const txId = crypto.randomUUID()
@@ -73,24 +72,26 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Erro ao registrar transação" }), { status: 500, headers: corsHeaders })
     }
 
-    // 2. Atualiza saldos
-    const { error: updateProfileError } = await supabase
-      .from('profiles')
-      .update({ real_balance: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', targetUserId)
+    // 2. Atualiza saldos atomicamente (increment, não overwrite)
+    const { error: updateProfileError } = await supabase.rpc('increment_real_balance', {
+      user_id: targetUserId,
+      amount: amount
+    })
 
     if (updateProfileError) {
-      return new Response(JSON.stringify({ error: "Erro ao atualizar saldo no perfil" }), { status: 500, headers: corsHeaders })
+      return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
     }
 
-    const { error: updateUserError } = await supabase
-      .from('users')
-      .update({ balance: newBalance })
-      .eq('id', targetUserId)
+    const { error: updateUserError } = await supabase.rpc('increment_balance', {
+      user_id: targetUserId,
+      amount: amount
+    })
 
     if (updateUserError) {
-      return new Response(JSON.stringify({ error: "Erro ao atualizar saldo do usuário" }), { status: 500, headers: corsHeaders })
+      console.error("[admin-add-bonus] Erro ao incrementar balance (real_balance já atualizado):", updateUserError)
     }
+
+    const newBalance = currentBalance + amount
 
     return new Response(JSON.stringify({
       success: true,

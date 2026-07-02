@@ -56,24 +56,16 @@ serve(async (req) => {
     }
 
     const currentBalance = Number(profile.real_balance || 0)
-    let newBalance = currentBalance
 
-    if (action === "add") {
-      newBalance = currentBalance + amount
-    } else if (action === "remove") {
-      if (amount > currentBalance) {
-        return new Response(JSON.stringify({ error: "Saldo insuficiente para remoção" }), { status: 400, headers: corsHeaders })
-      }
-      newBalance = currentBalance - amount
-    } else if (action === "set") {
-      newBalance = amount
+    if (action === "remove" && amount > currentBalance) {
+      return new Response(JSON.stringify({ error: "Saldo insuficiente para remoção" }), { status: 400, headers: corsHeaders })
     }
 
     // 1. Registra transação PRIMEIRO
     const txId = crypto.randomUUID()
     const actionLabel = action === "add" ? "ADMIN_BONUS" : action === "remove" ? "ADMIN_REMOVE" : "ADMIN_SET"
     const pixCode = `${actionLabel}: ${reason || "Ajuste administrativo"} (por ${requester.email})`
-    const txAmount = action === "add" ? amount : action === "remove" ? amount : newBalance
+    const txAmount = action === "add" ? amount : amount
     const txType = action === "remove" ? "withdraw" : "deposit"
 
     const { error: txError } = await supabase.from("transactions").insert({
@@ -91,24 +83,25 @@ serve(async (req) => {
       return new Response(JSON.stringify({ error: "Erro ao registrar transação" }), { status: 500, headers: corsHeaders })
     }
 
-    // 2. Atualiza saldos
-    const { error: updateProfileError } = await supabase
-      .from('profiles')
-      .update({ real_balance: newBalance, updated_at: new Date().toISOString() })
-      .eq('id', targetUserId)
-
-    if (updateProfileError) {
-      return new Response(JSON.stringify({ error: "Erro ao atualizar saldo no perfil" }), { status: 500, headers: corsHeaders })
+    // 2. Atualiza saldos atomicamente
+    if (action === "add") {
+      const { error: e1 } = await supabase.rpc('increment_real_balance', { user_id: targetUserId, amount })
+      if (e1) return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
+      const { error: e2 } = await supabase.rpc('increment_balance', { user_id: targetUserId, amount })
+      if (e2) console.error("[admin-manage-balance] increment_balance falhou após real_balance:", e2)
+    } else if (action === "remove") {
+      const { error: e1 } = await supabase.rpc('increment_real_balance', { user_id: targetUserId, amount: -amount })
+      if (e1) return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
+      const { error: e2 } = await supabase.rpc('increment_balance', { user_id: targetUserId, amount: -amount })
+      if (e2) console.error("[admin-manage-balance] increment_balance falhou após real_balance:", e2)
+    } else if (action === "set") {
+      const { error: e1 } = await supabase.from('profiles').update({ real_balance: amount, updated_at: new Date().toISOString() }).eq('id', targetUserId)
+      if (e1) return new Response(JSON.stringify({ error: "Erro ao atualizar real_balance" }), { status: 500, headers: corsHeaders })
+      const { error: e2 } = await supabase.rpc('increment_balance', { user_id: targetUserId, amount: amount - currentBalance })
+      if (e2) console.error("[admin-manage-balance] increment_balance falhou após real_balance:", e2)
     }
 
-    const { error: updateUserError } = await supabase
-      .from('users')
-      .update({ balance: newBalance })
-      .eq('id', targetUserId)
-
-    if (updateUserError) {
-      return new Response(JSON.stringify({ error: "Erro ao atualizar saldo do usuário" }), { status: 500, headers: corsHeaders })
-    }
+    const newBalance = action === "set" ? amount : (action === "remove" ? currentBalance - amount : currentBalance + amount)
 
     return new Response(JSON.stringify({
       success: true,

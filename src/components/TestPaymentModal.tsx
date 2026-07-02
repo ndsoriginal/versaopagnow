@@ -92,6 +92,7 @@ const TestPaymentModal: React.FC<TestPaymentModalProps> = ({ open, onClose, user
           detail: {
             title: "Depósito Recebido",
             body: `Seu depósito de R$ ${amount.toFixed(2)} foi creditado com sucesso na sua conta!`,
+            type: "pix_paid",
           },
         })
       );

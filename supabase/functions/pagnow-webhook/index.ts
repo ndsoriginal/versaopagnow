@@ -81,7 +81,30 @@ serve(async (req) => {
 
     console.log(`[pagnow-webhook] Recebido evento: ${eventType}, delivery: ${deliveryId}`)
 
-    const webhookSecret = Deno.env.get("PAGNOW_WEBHOOK_SECRET")
+    const supabase = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    )
+
+    let webhookSecret = Deno.env.get("PAGNOW_WEBHOOK_SECRET")
+    if (!webhookSecret) {
+      try {
+        const { data: gateways } = await supabase
+          .from('payment_gateways')
+          .select('config')
+          .eq('slug', 'pagnow')
+          .limit(1)
+        if (gateways?.length) {
+          const cfg = typeof gateways[0].config === 'string'
+            ? JSON.parse(gateways[0].config)
+            : gateways[0].config
+          webhookSecret = cfg.webhook_secret
+        }
+      } catch {
+        // fallback to env var only
+      }
+    }
+
     if (webhookSecret) {
       const valid = await verifySignature(rawBody, signature, webhookSecret)
       if (!valid) {
@@ -118,10 +141,21 @@ serve(async (req) => {
 
     console.log(`[pagnow-webhook] Processando pagamento completado: ${transactionId}, delivery: ${deliveryId}`)
 
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
-    )
+    // Delivery dedup: claim delivery atomically
+    if (deliveryId) {
+      const { data: claimed } = await supabase.rpc('try_claim_delivery', {
+        p_delivery_id: deliveryId,
+        p_gateway: 'pagnow',
+        p_transaction_id: transactionId
+      })
+      if (claimed === false) {
+        console.log(`[pagnow-webhook] Delivery ${deliveryId} já processado`)
+        return new Response(JSON.stringify({ received: true, already_processed: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
+    }
 
     const { data: tx, error: txError } = await supabase
       .from('transactions')
@@ -137,26 +171,29 @@ serve(async (req) => {
       })
     }
 
-    if (tx.status === 'completed') {
-      console.log(`[pagnow-webhook] Transação ${transactionId} já processada`)
-      return new Response(JSON.stringify({ received: true, already_processed: true }), {
-        status: 200,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-      })
-    }
-
     // Handle withdraw_fee transactions
     if (tx.type === 'withdraw_fee') {
-      console.log(`[pagnow-webhook] É taxa de saque, atualizando withdraw_requests para transaction ${transactionId}`)
+      const now = new Date().toISOString()
 
-      await supabase
+      const { data: updated } = await supabase
         .from('transactions')
         .update({ status: 'completed' })
         .eq('id', transactionId)
+        .eq('status', 'pending')
+        .select()
+        .maybeSingle()
+
+      if (!updated) {
+        console.log(`[pagnow-webhook] withdraw_fee ${transactionId} já processada`)
+        return new Response(JSON.stringify({ received: true, already_processed: true }), {
+          status: 200,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+        })
+      }
 
       await supabase
         .from('pix_requests')
-        .update({ status: 'paid', updated_at: new Date().toISOString() })
+        .update({ status: 'paid', updated_at: now })
         .eq('transaction_id', transactionId)
 
       const { data: wr } = await supabase
@@ -168,7 +205,7 @@ serve(async (req) => {
       if (wr) {
         await supabase
           .from('withdraw_requests')
-          .update({ status: 'awaiting_key', updated_at: new Date().toISOString() })
+          .update({ status: 'awaiting_key', updated_at: now })
           .eq('id', wr.id)
       }
 
@@ -178,30 +215,42 @@ serve(async (req) => {
       })
     }
 
-    // Normal deposit flow
-    console.log(`[pagnow-webhook] Creditando R$ ${tx.amount} para o usuário ${tx.user_id}`)
+    // Normal deposit flow — atomic claim
+    const now = new Date().toISOString()
+    const { data: claimedTx } = await supabase
+      .from('transactions')
+      .update({ status: 'completed' })
+      .eq('id', transactionId)
+      .eq('status', 'pending')
+      .select()
+      .maybeSingle()
 
-    const { data: userAuth } = await supabase.auth.admin.getUserById(tx.user_id)
-    const userEmail = userAuth?.user?.email || tx.user_id
+    if (!claimedTx) {
+      console.log(`[pagnow-webhook] Transação ${transactionId} já processada (atomic)`)
+      return new Response(JSON.stringify({ received: true, already_processed: true }), {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      })
+    }
+
+    console.log(`[pagnow-webhook] Creditando R$ ${claimedTx.amount} para o usuário ${claimedTx.user_id}`)
+
+    const { data: userAuth } = await supabase.auth.admin.getUserById(claimedTx.user_id)
+    const userEmail = userAuth?.user?.email || claimedTx.user_id
 
     await supabase.from('users').upsert({
-      id: tx.user_id,
+      id: claimedTx.user_id,
       email: userEmail
     }, { onConflict: 'id' })
 
     await supabase
-      .from('transactions')
-      .update({ status: 'completed' })
-      .eq('id', transactionId)
-
-    await supabase
       .from('pix_requests')
-      .update({ status: 'paid', updated_at: new Date().toISOString() })
+      .update({ status: 'paid', updated_at: now })
       .eq('transaction_id', transactionId)
 
     const { data: newBalance, error: balanceError } = await supabase.rpc('increment_balance', {
-      user_id: tx.user_id,
-      amount: Number(tx.amount)
+      user_id: claimedTx.user_id,
+      amount: Number(claimedTx.amount)
     })
 
     if (balanceError) {
@@ -209,10 +258,28 @@ serve(async (req) => {
       throw balanceError
     }
 
+    // Also update real_balance to prevent drift
+    await supabase.rpc('increment_real_balance', {
+      user_id: claimedTx.user_id,
+      amount: Number(claimedTx.amount)
+    }).catch(e => console.error("[pagnow-webhook] Erro ao incrementar real_balance:", e))
+
     console.log(`[pagnow-webhook] Saldo atualizado: ${newBalance}`)
 
     // Send Purchase event to Meta CAPI
-    sendMetaPurchase(Number(tx.amount), userEmail, supabase)
+    sendMetaPurchase(Number(claimedTx.amount), userEmail, supabase)
+
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
+    try {
+      await fetch(`${supabaseUrl}/functions/v1/send-admin-notification`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${supabaseServiceKey}` },
+        body: JSON.stringify({ type: 'pix_paid', title: '💰 Venda Aprovada', body: `R$ ${Number(claimedTx.amount).toFixed(2)}`, data: { url: '/admin', type: 'pix_paid', userName: userEmail || claimedTx.user_id.slice(0, 8), amount: claimedTx.amount } })
+      })
+    } catch (e) {
+      console.error(`[pagnow-webhook] Erro ao notificar admin:`, e)
+    }
 
     return new Response(JSON.stringify({ received: true, credited: true }), {
       status: 200,

@@ -18,9 +18,10 @@ const AdminConfig: React.FC = () => {
   const [metaLogs, setMetaLogs] = useState<any[]>([]);
   const [loadingLogs, setLoadingLogs] = useState(false);
   const [logFilter, setLogFilter] = useState("all");
+  const [adminRole, setAdminRole] = useState<string | null>(null);
+  const [roleLoading, setRoleLoading] = useState(true);
 
-  const isAdmin = user?.email?.trim().toLowerCase() === "admin01@gmail.com" || 
-                  user?.email?.trim().toLowerCase() === "jhonatas553@gmail.com";
+  const isAdmin = adminRole === 'admin' || adminRole === 'superadmin';
 
   useEffect(() => {
     const savedPixelId = localStorage.getItem("meta_pixel_id") || "1569633754739174";
@@ -30,10 +31,20 @@ const AdminConfig: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (user && user.email?.trim().toLowerCase() !== "admin01@gmail.com" && user.email?.trim().toLowerCase() !== "jhonatas553@gmail.com") {
-      navigate("/", { replace: true });
+    if (user) {
+      setRoleLoading(true);
+      (async () => {
+        try {
+          const { data: p } = await supabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+          if (p) setAdminRole(p.role);
+        } catch {}
+        setRoleLoading(false);
+      })();
+    } else {
+      setAdminRole(null);
+      setRoleLoading(false);
     }
-  }, [user, navigate]);
+  }, [user]);
 
   const loadMetaLogs = async () => {
     setLoadingLogs(true);
@@ -132,6 +143,16 @@ const AdminConfig: React.FC = () => {
       setLoading(false);
     }
   };
+
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen bg-[#06070a] flex items-center justify-center p-4">
+        <div className="w-full max-w-sm bg-[#0d0f14] border border-[#1c212b] rounded-3xl p-8 shadow-2xl text-center">
+          <div className="animate-spin w-8 h-8 border-2 border-[#ffcc00] border-t-transparent rounded-full mx-auto" />
+        </div>
+      </div>
+    );
+  }
 
   if (!isAdmin) {
     return (

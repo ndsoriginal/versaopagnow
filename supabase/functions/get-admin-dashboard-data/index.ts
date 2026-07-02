@@ -15,6 +15,12 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    const bodyText = await req.text()
+    let filters: any = {}
+    try { if (bodyText) filters = JSON.parse(bodyText) } catch { /* ignore */ }
+    const filterStartDate = filters?.startDate ? new Date(filters.startDate).getTime() : 0
+    const filterEndDate = filters?.endDate ? new Date(filters.endDate).getTime() + 86400000 : 0
+
     const authHeader = req.headers.get('Authorization')
     const token = authHeader?.replace('Bearer ', '')
     const { data: authData, error: authError } = await supabase.auth.getUser(token)
@@ -87,7 +93,7 @@ serve(async (req) => {
       const amount = safeAmount(t.amount);
       const code = String(t.pix_code || "").toUpperCase();
 
-      if (amount > 50000) return 'INVALID';
+      if (amount > 999999) return 'INVALID';
       if (code.includes('BUG') || code.includes('BONUS') || code.includes('LOCALIZACAO')) return 'BUG_BONUS';
       if (code.includes('ADMIN')) return 'ADMIN_CREDIT';
       return 'REAL_DEPOSIT';
@@ -100,10 +106,19 @@ serve(async (req) => {
     const startOfWeek = startOfToday - (7 * 24 * 60 * 60 * 1000);
     const startOfMonth = new Date(nowBR.getFullYear(), nowBR.getMonth(), 1).getTime();
 
+    // Apply date filters from request
+    const inRange = (iso: string) => {
+      const t = new Date(iso).getTime()
+      if (filterStartDate && t < filterStartDate) return false
+      if (filterEndDate && t >= filterEndDate) return false
+      return true
+    }
+
     const realTransactions = allTransactions.filter(t => 
       t.type === 'deposit' && 
       commonUserIds.has(t.user_id) && 
-      classify(t) === 'REAL_DEPOSIT'
+      classify(t) === 'REAL_DEPOSIT' &&
+      inRange(t.created_at)
     );
 
     const realPaid = realTransactions.filter(t => isPaid(t.status));
@@ -124,9 +139,9 @@ serve(async (req) => {
       realRevenueMonth: sum(realPaid.filter(t => getBRTime(t.created_at) >= startOfMonth)),
       pendingAmount: sum(realPending),
       totalPaidCount: realPaid.length,
-      totalBugAmount: sum(allTransactions.filter(t => isPaid(t.status) && classify(t) === 'BUG_BONUS')),
+      totalBugAmount: sum(allTransactions.filter(t => t.type === 'deposit' && isPaid(t.status) && classify(t) === 'BUG_BONUS')),
       totalQrGenerated: allAttempts.filter(a => commonUserIds.has(a.user_id)).length,
-      // New user stats
+      countToday: realPaid.filter(t => getBRTime(t.created_at) >= startOfToday).length,
       newUsersToday: count(allUsers.filter(u => commonUserIds.has(u.id) && getBRTime(u.created_at) >= startOfToday)),
       newUsersYesterday: count(allUsers.filter(u => {
         const time = getBRTime(u.created_at);
@@ -147,15 +162,14 @@ serve(async (req) => {
           name: p?.first_name,
           phone: p?.phone,
           created_at: u.created_at,
-          real_balance: safeAmount(u.balance),
+          real_balance: safeAmount(p?.real_balance ?? u.balance),
           total_deposited: sum(userPaid),
           deposit_count: userPaid.length
         };
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
-    const deposits = allTransactions
-      .filter(t => t.type === 'deposit')
+    const deposits = realPaid
       .map(d => {
         const u = userMap.get(d.user_id);
         const p = profileMap.get(d.user_id);
@@ -165,17 +179,124 @@ serve(async (req) => {
           name: p?.first_name || null,
           phone: p?.phone || null,
           role: p?.role || null,
-          audit_type: classify(d)
+          audit_type: 'REAL_DEPOSIT'
         };
       })
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 2000);
+
+    // Build charts data: last 7 days revenue + funnel + registrations + distribution
+    const daily: any[] = []
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = startOfToday - (i * 86400000)
+      const dayEnd = dayStart + 86400000
+      const dayRevenue = sum(realPaid.filter(t => {
+        const tTime = getBRTime(t.created_at)
+        return tTime >= dayStart && tTime < dayEnd
+      }))
+      const dayDate = new Date(nowBR.getTime() - (i * 86400000))
+      daily.push({
+        date: dayDate.toISOString().slice(0, 10),
+        revenue: dayRevenue,
+        deposits: realPaid.filter(t => {
+          const tTime = getBRTime(t.created_at)
+          return tTime >= dayStart && tTime < dayEnd
+        }).length
+      })
+    }
+
+    // Funnel
+    const uniqueDepositors = new Set(realPaid.map((t: any) => t.user_id)).size
+    const realPaid50plus = realPaid.filter((t: any) => safeAmount(t.amount) > 50)
+    const realPaid100plus = realPaid.filter((t: any) => safeAmount(t.amount) > 100)
+    const realPaid500plus = realPaid.filter((t: any) => safeAmount(t.amount) > 500)
+    const funnel = [
+      { name: "Total de Usuários", value: overview.totalUsers },
+      { name: "Depositantes", value: uniqueDepositors },
+      { name: "Depósitos > R$50", value: new Set(realPaid50plus.map((t: any) => t.user_id)).size },
+      { name: "Depósitos > R$100", value: new Set(realPaid100plus.map((t: any) => t.user_id)).size },
+      { name: "Depósitos > R$500", value: new Set(realPaid500plus.map((t: any) => t.user_id)).size }
+    ]
+
+    // Registrations by day (for area chart)
+    const registrationsByDay: any[] = []
+    for (let i = 6; i >= 0; i--) {
+      const dayStart = startOfToday - (i * 86400000)
+      const dayEnd = dayStart + 86400000
+      const regCount = allUsers.filter((u: any) => {
+        if (!commonUserIds.has(u.id)) return false
+        const t = getBRTime(u.created_at)
+        return t >= dayStart && t < dayEnd
+      }).length
+      const depCount = realPaid.filter((t: any) => {
+        const tTime = getBRTime(t.created_at)
+        return tTime >= dayStart && tTime < dayEnd
+      }).length
+      const dayDate = new Date(nowBR.getTime() - (i * 86400000))
+      registrationsByDay.push({
+        date: dayDate.toISOString().slice(0, 10),
+        registrations: regCount,
+        deposits: depCount
+      })
+    }
+
+    // Deposit amount distribution (for pie chart)
+    const ranges = [
+      { name: "R$ 0-20", min: 0, max: 20 },
+      { name: "R$ 20-50", min: 20, max: 50 },
+      { name: "R$ 50-100", min: 50, max: 100 },
+      { name: "R$ 100-200", min: 100, max: 200 },
+      { name: "R$ 200+", min: 200, max: Infinity }
+    ]
+    const depositsAmountByDay = ranges.map(r => ({
+      name: r.name,
+      value: realPaid.filter((t: any) => {
+        const amt = safeAmount(t.amount)
+        return amt >= r.min && amt < r.max
+      }).length
+    }))
+
+    const charts = { daily, funnel, registrationsByDay, depositsAmountByDay }
+
+    // Rankings: top depositors
+    const userDepositMap = new Map<string, number>()
+    const userDepositCountMap = new Map<string, number>()
+    realPaid.forEach((t: any) => {
+      userDepositMap.set(t.user_id, (userDepositMap.get(t.user_id) || 0) + safeAmount(t.amount))
+      userDepositCountMap.set(t.user_id, (userDepositCountMap.get(t.user_id) || 0) + 1)
+    })
+    const rankings = {
+      topDepositors: Array.from(userDepositMap.entries())
+        .map(([userId, total]) => {
+          const p = profileMap.get(userId)
+          const u = userMap.get(userId)
+          return {
+            email: u?.email || '',
+            name: p?.first_name || u?.email || userId,
+            deposit_count: userDepositCountMap.get(userId) || 0,
+            total_deposited: total
+          }
+        })
+        .sort((a, b) => b.total_deposited - a.total_deposited)
+        .slice(0, 20)
+    }
+
+    // Peaks: busiest hours
+    const hourCounts = new Array(24).fill(0)
+    realPaid.forEach(t => {
+      const h = new Date(t.created_at).getHours()
+      hourCounts[h]++
+    })
+    const peaks = hourCounts.map((count, hour) => ({ hour, count }))
 
     return new Response(JSON.stringify({
       success: true,
       overview,
       users,
       deposits,
+      charts,
+      rankings,
+      peaks,
       pixRequests: allPixRequests
         .map((p: any) => {
           const u = userMap.get(p.user_id);

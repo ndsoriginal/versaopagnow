@@ -17,7 +17,7 @@ export default defineConfig(() => ({
       srcDir: "public",
       filename: "sw.js",
       registerType: "autoUpdate",
-      includeAssets: ["pwa-icon.svg"],
+      includeAssets: ["logopw.jpg"],
       manifest: {
         name: "PixBett",
         short_name: "PixBett",
@@ -30,16 +30,16 @@ export default defineConfig(() => ({
         scope: "/",
         icons: [
           {
-            src: "pwa-icon.svg",
-            sizes: "512x512",
-            type: "image/svg+xml",
+            src: "logopw.jpg",
+            sizes: "192x192",
+            type: "image/jpeg",
             purpose: "any",
           },
           {
-            src: "pwa-icon.svg",
+            src: "logopw.jpg",
             sizes: "512x512",
-            type: "image/svg+xml",
-            purpose: "maskable",
+            type: "image/jpeg",
+            purpose: "any",
           },
         ],
       },

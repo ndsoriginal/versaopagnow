@@ -87,6 +87,17 @@ const SignupPopup: React.FC<Props> = ({ open, onClose }) => {
 
       trackRegistration(email);
 
+      const maskEmail = (e: string) => {
+        const [local, domain] = e.split('@')
+        if (!domain) return e
+        const prefix = local.slice(0, 3)
+        return `${prefix}*****@${domain}`
+      }
+      supabase.functions.invoke('send-admin-notification', {
+        body: { type: 'new_lead', title: '✅ Novo Cadastro', body: maskEmail(email),
+          data: { url: '/admin', type: 'new_lead', userName: name.trim(), userEmail: email } }
+      }).catch(() => {})
+
       showSuccess(
         "Conta criada com sucesso! Faça login para começar a jogar.",
       );

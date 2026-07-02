@@ -25,3 +25,15 @@ dist-ssr
 .dyad/
 
 .vercel
+
+# Environment variables
+.env
+.env.local
+.env.production
+
+# Build artifacts
+*.tar.gz
+*.7z
+
+# Supabase local temp
+supabase/.temp/

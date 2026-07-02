@@ -33,10 +33,10 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/pwa-icon.svg',
-    badge: '/pwa-icon.svg',
+    icon: '/logopw.jpg',
+    badge: '/logopw.jpg',
     vibrate: data.type === 'pix_paid' ? [200, 100, 200, 100, 400] : [200],
-    data: { type: data.type, url: data.url || '/admin' },
+    data: { type: data.type, url: data.url || '/admin', sound: data.sound || '' },
     requireInteraction: true,
   }
 

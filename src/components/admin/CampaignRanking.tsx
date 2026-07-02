@@ -40,7 +40,7 @@ export default function CampaignRanking({ metrics: propMetrics, loading: propLoa
     let q = supabase.from("ads_daily_metrics").select("*");
     if (dateStart) q = q.gte("date", dateStart);
     if (dateEnd) q = q.lte("date", dateEnd);
-    q.order("date", { ascending: false })
+    Promise.resolve(q.order("date", { ascending: false }))
       .then(({ data, error }) => {
         if (error) setInternalError(error.message);
         else setInternalMetrics((data || []) as AdMetric[]);

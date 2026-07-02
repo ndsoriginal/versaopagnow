@@ -4,6 +4,7 @@ export type PixResponse = {
   id: string;
   pixCopyPaste: string;
   pixQrCode?: string;
+  qrCode?: string;
   status?: string;
   isFee?: boolean;
 };
@@ -19,7 +20,8 @@ export const gatewayCreatePix = async (
   });
 
   if (error) {
-    console.error("[services/gateway] Erro ao invocar função:", error);
+    const errData = (error as any)?.context?.data
+    console.error("[services/gateway] gateway-pix erro:", { message: error.message, data: errData, full: error });
     throw error;
   }
 

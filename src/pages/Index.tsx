@@ -27,7 +27,7 @@ import GamePlayModal from "@/components/GamePlayModal";
 import LiveBetsFeed from "@/components/LiveBetsFeed";
 import { useSession } from "@/context/SessionContext";
 import { BonusProvider } from "@/context/BonusContext";
-import { ShieldCheck, Zap, Landmark, Lock, Sparkles } from "lucide-react";
+import { ShieldCheck, Zap, Landmark, Lock, Sparkles, Clock } from "lucide-react";
 
 interface Props {
   onToggleChat?: () => void;
@@ -55,6 +55,27 @@ const Index: React.FC<Props> = ({ onToggleChat }) => {
 
   const intervalRef = React.useRef<number | null>(null);
   const { user } = useSession();
+
+  const [bonusCountdown, setBonusCountdown] = useState(600);
+  const [bonusDeadlineStr, setBonusDeadlineStr] = useState("");
+
+  useEffect(() => {
+    const deadline = Date.now() + 10 * 60 * 1000;
+    setBonusDeadlineStr(new Date(deadline).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }));
+    setBonusCountdown(600);
+    const interval = setInterval(() => {
+      const remaining = Math.max(0, Math.floor((deadline - Date.now()) / 1000));
+      setBonusCountdown(remaining);
+      if (remaining <= 0) clearInterval(interval);
+    }, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const formatTime = (s: number) => {
+    const min = Math.floor(s / 60);
+    const sec = s % 60;
+    return `${min}:${sec.toString().padStart(2, "0")}`;
+  };
 
   const openDepositModal = (amount?: number) => {
     setInitialDepositAmount(amount);
@@ -159,6 +180,21 @@ const Index: React.FC<Props> = ({ onToggleChat }) => {
           onOpenUserMenu={handleOpenUserMenu}
           onOpenMobileMenu={() => setIsMobileMenuOpen(true)}
         />
+
+        {bonusCountdown > 0 ? (
+          <div className="w-full bg-[#ffcc00]/10 border-y border-[#ffcc00]/20 py-2.5 px-4 pt-[72px] lg:pt-0">
+            <div className="mx-auto max-w-[1200px] flex items-center justify-center gap-2 text-xs sm:text-sm flex-wrap">
+              <span>🎁</span>
+              <span className="font-bold text-white uppercase tracking-tight">Bônus de R$ 680 disponível apenas hoje!</span>
+              <span className="text-amber-400 font-black">| {formatTime(bonusCountdown)} restantes</span>
+              <span className="hidden sm:inline text-[10px] text-amber-500 font-bold uppercase">(até {bonusDeadlineStr})</span>
+            </div>
+          </div>
+        ) : (
+          <div className="w-full bg-red-500/10 border-y border-red-500/30 py-2.5 px-4 pt-[72px] lg:pt-0">
+            <p className="text-xs font-bold text-red-400 text-center">⏰ Prazo do bônus encerrado. Volte amanhã para novas promoções.</p>
+          </div>
+        )}
 
         <main className="ml-0 lg:ml-[240px] pt-[72px] lg:pt-0 p-4 lg:p-8 pb-20">
           <div className="mx-auto max-w-[1200px] space-y-10">

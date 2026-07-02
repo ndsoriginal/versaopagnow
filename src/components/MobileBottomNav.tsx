@@ -11,7 +11,14 @@ interface Props {
   isRouletteOpen?: boolean;
 }
 
-const NAV_ITEMS = [
+type NavItem = {
+  label: string;
+  icon: React.ComponentType<any>;
+  href?: string;
+  action?: "roulette";
+};
+
+const NAV_ITEMS: NavItem[] = [
   { label: "In\u00edcio", icon: Home, href: "/" },
   { label: "Jogos", icon: Gamepad, href: "/games" },
   { label: "Roleta", icon: Gift, action: "roulette" as const },

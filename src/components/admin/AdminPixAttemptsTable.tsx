@@ -34,7 +34,7 @@ const AdminPixAttemptsTable: React.FC<Props> = ({ attempts }) => {
     setSimulatingId(pagnowTxId)
     try {
       const { data, error } = await supabase.functions.invoke("admin-simulate-payment", {
-        body: { transactionId: pagnowTxId }
+        body: { userId: attempt.user_id, amount: attempt.amount }
       })
       if (error) throw new Error(error.message)
       showSuccess(`Pagamento simulado! R$ ${Number(data.creditedAmount).toFixed(2)} creditado.`)
